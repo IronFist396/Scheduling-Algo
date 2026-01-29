@@ -1,0 +1,102 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum InterviewStatus {
+  SCHEDULED
+  COMPLETED
+  CANCELLED_BY_CANDIDATE
+  CANCELLED_BY_INTERVIEWER
+  NO_SHOW
+}
+
+enum CandidateStatus {
+  PENDING
+  SCHEDULED
+  COMPLETED
+  REJECTED
+}
+
+model Candidate {
+  id           String          @id @default(cuid())
+  name         String
+  email        String
+  rollNumber   String          @unique
+  department   String
+  year         String
+  hostel       String?
+  contactNumber String?
+  // Store availability as JSON: {"monday": ["9:30AM-10:30AM", "10:30AM-11:30AM"], ...}
+  availability Json
+  comments     String?         @db.Text
+  status       CandidateStatus @default(PENDING)
+  createdAt    DateTime        @default(now())
+  interviews   Interview[]
+
+  @@index([rollNumber])
+  @@index([status])
+  @@map("candidates")
+}
+
+model OC {
+  id           String      @id @default(cuid())
+  name         String
+  email        String      @unique
+  department   String
+  // Store availability as JSON: {"monday": ["9:30AM-10:30AM", ...], ...}
+  availability Json
+  createdAt    DateTime    @default(now())
+  
+  // Relations for interviews where this OC is OC1 or OC2
+  interviewsAsOC1 Interview[] @relation("OC1")
+  interviewsAsOC2 Interview[] @relation("OC2")
+
+  @@map("ocs")
+}
+
+model Interview {
+  id              String          @id @default(cuid())
+  candidateId     String
+  candidate       Candidate       @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  
+  oc1Id           String
+  oc1             OC              @relation("OC1", fields: [oc1Id], references: [id])
+  
+  oc2Id           String
+  oc2             OC              @relation("OC2", fields: [oc2Id], references: [id])
+  
+  startTime       DateTime
+  endTime         DateTime
+  dayNumber       Int             // Day 1-50
+  status          InterviewStatus @default(SCHEDULED)
+  notes           String?         @db.Text
+  panelId         String?
+  isCompleted     Boolean         @default(false) // If true, this interview is done and won't be rescheduled
+  
+  // Reschedule tracking fields
+  lastRescheduledFrom String?     // Candidate ID who was moved FROM this slot
+  lastRescheduledTo   String?     // Candidate ID who was moved TO this slot  
+  lastRescheduledAt   DateTime?   // When the last reschedule happened
+  rescheduleReason    String?     @db.Text // Why this interview was rescheduled
+  rescheduleCount     Int         @default(0) // Number of times this slot has been rescheduled
+  
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  @@index([startTime])
+  @@index([dayNumber])
+  @@index([status])
+  @@index([candidateId])
+  @@map("interviews")
+}

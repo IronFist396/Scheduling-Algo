@@ -1,22 +1,69 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/pages/api-reference/create-next-app).
+# ISMP Interview Scheduler
 
-## Getting Started
+A Next.js application for scheduling ISMP mentor interviews using an optimal constraint-based algorithm.
 
-First, run the development server:
+## Features
+
+- 🎯 **Smart Scheduling**: Availability-constrained-first greedy algorithm
+- 📅 **Multi-day Support**: Schedule across 50+ days automatically
+- 👥 **OC Management**: Requires both OCs to be present for each interview
+- 📊 **Dashboard**: Visual calendar view with statistics
+- ✅ **Status Tracking**: Mark interviews as completed/cancelled
+
+## Setup Instructions
+
+### 1. Database Setup
+
+Make sure PostgreSQL is running locally. Create a database:
+
+```bash
+# In PostgreSQL
+CREATE DATABASE interview_scheduler;
+```
+
+### 2. Environment Configuration
+
+Create a `.env` file in the root directory:
+
+```env
+DATABASE_URL="postgresql://USERNAME:PASSWORD@localhost:5432/interview_scheduler?schema=public"
+```
+
+Replace `USERNAME` and `PASSWORD` with your PostgreSQL credentials.
+
+### 3. Install Dependencies
+
+```bash
+npm install
+```
+
+### 4. Generate Prisma Client
+
+```bash
+npx prisma generate
+```
+
+### 5. Run Database Migrations
+
+```bash
+npx prisma migrate dev --name init
+```
+
+### 6. Seed the Database
+
+This will parse the CSV and insert all candidates and OCs:
+
+```bash
+node prisma/seed.js
+```
+
+### 7. Run the Development Server
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `pages/index.js`. The page auto-updates as you edit the file.
 
 [API routes](https://nextjs.org/docs/pages/building-your-application/routing/api-routes) can be accessed on [http://localhost:3000/api/hello](http://localhost:3000/api/hello). This endpoint can be edited in `pages/api/hello.js`.
 
