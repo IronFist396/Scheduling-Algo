@@ -113,6 +113,9 @@ export default function Home() {
           selectedOC={selectedOC}
           setSelectedOC={setSelectedOC}
           ocs={stats?.ocs || []}
+          maxWeek={stats?.weeksUsed || 1}
+          daysUsed={stats?.daysUsed || 0}
+          weeksUsed={stats?.weeksUsed || 0}
         />
 
         {/* Calendar */}

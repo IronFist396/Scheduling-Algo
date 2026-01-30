@@ -290,31 +290,31 @@ export default function ScheduleCalendar({ currentDay, selectedOC }) {
             <div className="space-y-4">
               <div>
                 <label className="text-sm font-medium text-gray-600">Candidate</label>
-                <p className="text-lg font-semibold">{selectedInterview.candidate.name}</p>
+                <p className="text-lg font-semibold text-black">{selectedInterview.candidate.name}</p>
                 <p className="text-sm text-gray-600">{selectedInterview.candidate.rollNumber}</p>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm font-medium text-gray-600">Department</label>
-                  <p className="text-sm">{selectedInterview.candidate.department}</p>
+                  <p className="text-sm text-black">{selectedInterview.candidate.department}</p>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-600">Email</label>
-                  <p className="text-sm">{selectedInterview.candidate.email}</p>
+                  <p className="text-sm text-black">{selectedInterview.candidate.email}</p>
                 </div>
               </div>
 
               <div>
                 <label className="text-sm font-medium text-gray-600">Interviewers</label>
-                <p className="text-sm">
+                <p className="text-sm text-black">
                   {selectedInterview.oc1.name} & {selectedInterview.oc2.name}
                 </p>
               </div>
 
               <div>
                 <label className="text-sm font-medium text-gray-600">Scheduled Time</label>
-                <p className="text-sm">
+                <p className="text-sm text-black">
                   {format(new Date(selectedInterview.startTime), 'EEEE, MMMM d, yyyy - h:mm a')}
                 </p>
                 <p className="text-xs text-gray-500 mt-1">
@@ -415,7 +415,7 @@ export default function ScheduleCalendar({ currentDay, selectedOC }) {
                 <p className="text-sm text-gray-600 mb-2">
                   You are about to reschedule the interview for:
                 </p>
-                <p className="font-semibold">{selectedInterview.candidate.name}</p>
+                <p className="font-semibold text-black">{selectedInterview.candidate.name}</p>
                 <p className="text-sm text-gray-600">
                   {format(new Date(selectedInterview.startTime), 'EEEE, MMMM d, yyyy - h:mm a')}
                 </p>
@@ -428,7 +428,7 @@ export default function ScheduleCalendar({ currentDay, selectedOC }) {
                 <textarea
                   value={rescheduleReason}
                   onChange={(e) => setRescheduleReason(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+                  className="w-full text-black px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
                   rows="3"
                   placeholder="e.g., Candidate unavailable, conflict with another commitment..."
                 />

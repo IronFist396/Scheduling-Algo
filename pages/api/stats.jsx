@@ -18,9 +18,17 @@ export default async function handler(req, res) {
           email: true,
         },
       }),
+      // Get the maximum day number to calculate weeks used
+      prisma.interview.findFirst({
+        orderBy: { dayNumber: 'desc' },
+        select: { dayNumber: true },
+      }),
     ]);
 
-    const [totalCandidates, totalInterviews, scheduled, completed, ocs] = stats;
+    const [totalCandidates, totalInterviews, scheduled, completed, ocs, maxDayInterview] = stats;
+    
+    const daysUsed = maxDayInterview?.dayNumber || 0;
+    const weeksUsed = Math.ceil(daysUsed / 5);
 
     return res.status(200).json({
       totalCandidates,
@@ -29,6 +37,8 @@ export default async function handler(req, res) {
       completed,
       unscheduled: totalCandidates - totalInterviews,
       ocs,
+      daysUsed,
+      weeksUsed,
     });
   } catch (error) {
     console.error('Error fetching stats:', error);

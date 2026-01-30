@@ -17,8 +17,8 @@ export default function StatsPanel({ stats }) {
       value: stats.totalCandidates,
       color: 'bg-blue-50 text-blue-700',
       icon: '👥',
-      status: null,
-      clickable: false,
+      status: 'ALL',
+      clickable: true,
     },
     {
       label: 'Scheduled',

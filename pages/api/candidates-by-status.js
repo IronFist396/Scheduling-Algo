@@ -14,7 +14,34 @@ export default async function handler(req, res) {
   try {
     let candidates;
 
-    if (status === 'SCHEDULED') {
+    if (status === 'ALL') {
+      // Get all candidates
+      candidates = await prisma.candidate.findMany({
+        include: {
+          interviews: {
+            include: {
+              oc1: {
+                select: {
+                  name: true,
+                },
+              },
+              oc2: {
+                select: {
+                  name: true,
+                },
+              },
+            },
+            orderBy: {
+              startTime: 'asc',
+            },
+            take: 1,
+          },
+        },
+        orderBy: {
+          name: 'asc',
+        },
+      });
+    } else if (status === 'SCHEDULED') {
       // Get candidates with scheduled interviews
       candidates = await prisma.candidate.findMany({
         where: {
