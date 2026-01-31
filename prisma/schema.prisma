@@ -100,3 +100,18 @@ model Interview {
   @@index([candidateId])
   @@map("interviews")
 }
+
+model ActionHistory {
+  id              String   @id @default(cuid())
+  actionType      String   // COMPLETE, RESCHEDULE
+  interviewId     String
+  candidateName   String
+  details         String?  @db.Text
+  performedBy     String?  // User who performed the action (optional for now)
+  timestamp       DateTime @default(now())
+  undone          Boolean  @default(false)
+  
+  @@index([timestamp])
+  @@index([actionType])
+  @@map("action_history")
+}

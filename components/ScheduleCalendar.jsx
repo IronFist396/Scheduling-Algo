@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
+import { getInterviewDate } from '../lib/dateUtils';
 
 const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
 const TIME_SLOTS = [
@@ -19,13 +20,14 @@ function normalizeTime(timeStr) {
   return timeStr.toLowerCase().replace(/\s+/g, ' ');
 }
 
-export default function ScheduleCalendar({ currentDay, selectedOC }) {
+export default function ScheduleCalendar({ currentDay, selectedOC, scheduleStartDate }) {
   const [interviews, setInterviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedInterview, setSelectedInterview] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
   const [showRescheduleModal, setShowRescheduleModal] = useState(false);
   const [rescheduleReason, setRescheduleReason] = useState('');
+  const [statusFilter, setStatusFilter] = useState('ALL'); // ALL, SCHEDULED, COMPLETED
 
   useEffect(() => {
     fetchInterviews();
@@ -168,8 +170,16 @@ export default function ScheduleCalendar({ currentDay, selectedOC }) {
       const dayMatch = expectedDayName === day;
       const timeMatch = normalizeTime(interviewTime) === normalizeTime(timeSlot);
       
+      // Apply status filter
+      let statusMatch = true;
+      if (statusFilter === 'SCHEDULED') {
+        statusMatch = interview.status === 'SCHEDULED' && !interview.isCompleted;
+      } else if (statusFilter === 'COMPLETED') {
+        statusMatch = interview.status === 'COMPLETED' || interview.isCompleted;
+      }
+      
       // Match both day name and time (case-insensitive)
-      return dayMatch && timeMatch;
+      return dayMatch && timeMatch && statusMatch;
     });
     
     return filtered;
@@ -191,12 +201,53 @@ export default function ScheduleCalendar({ currentDay, selectedOC }) {
     <div className="bg-white rounded-lg shadow-sm overflow-hidden">
       {/* Calendar Header */}
       <div className="bg-gray-50 border-b px-6 py-4">
-        <h2 className="text-lg font-semibold text-gray-900">
-          Week {weekNumber} Schedule
-        </h2>
-        <p className="text-sm text-gray-600 mt-1">
-          Days {weekStartDay}-{weekEndDay} • {interviews.length} interview{interviews.length !== 1 ? 's' : ''} scheduled
-        </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900">
+              Week {weekNumber} Schedule
+            </h2>
+            <p className="text-sm text-gray-600 mt-1">
+              Days {weekStartDay}-{weekEndDay} • {interviews.length} interview{interviews.length !== 1 ? 's' : ''} scheduled
+            </p>
+          </div>
+          
+          {/* Status Filter */}
+          <div className="flex items-center gap-2">
+            <label className="text-sm font-medium text-gray-700">Filter:</label>
+            <div className="flex gap-1 bg-gray-200 rounded-lg p-1">
+              <button
+                onClick={() => setStatusFilter('ALL')}
+                className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
+                  statusFilter === 'ALL'
+                    ? 'bg-white text-blue-600 shadow-sm'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                All
+              </button>
+              <button
+                onClick={() => setStatusFilter('SCHEDULED')}
+                className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
+                  statusFilter === 'SCHEDULED'
+                    ? 'bg-white text-blue-600 shadow-sm'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                Scheduled
+              </button>
+              <button
+                onClick={() => setStatusFilter('COMPLETED')}
+                className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
+                  statusFilter === 'COMPLETED'
+                    ? 'bg-white text-green-600 shadow-sm'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                Completed
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Calendar Grid */}
@@ -207,14 +258,26 @@ export default function ScheduleCalendar({ currentDay, selectedOC }) {
               <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 w-32">
                 Time
               </th>
-              {DAYS_OF_WEEK.map((day) => (
-                <th
-                  key={day}
-                  className="px-4 py-3 text-left text-sm font-medium text-gray-700"
-                >
-                  {day}
-                </th>
-              ))}
+              {DAYS_OF_WEEK.map((day, index) => {
+                // Calculate the actual date for this day
+                const weekNumber = Math.ceil(currentDay / 5);
+                const dayNumber = (weekNumber - 1) * 5 + index + 1;
+                const actualDate = scheduleStartDate ? getInterviewDate(dayNumber, scheduleStartDate) : null;
+                
+                return (
+                  <th
+                    key={day}
+                    className="px-4 py-3 text-left text-sm font-medium text-gray-700"
+                  >
+                    <div>{day}</div>
+                    {actualDate && (
+                      <div className="text-xs font-normal text-gray-500 mt-1">
+                        {format(actualDate, 'MMM d, yyyy')}
+                      </div>
+                    )}
+                  </th>
+                );
+              })}
             </tr>
           </thead>
           <tbody className="divide-y">
@@ -315,7 +378,13 @@ export default function ScheduleCalendar({ currentDay, selectedOC }) {
               <div>
                 <label className="text-sm font-medium text-gray-600">Scheduled Time</label>
                 <p className="text-sm text-black">
-                  {format(new Date(selectedInterview.startTime), 'EEEE, MMMM d, yyyy - h:mm a')}
+                  {(() => {
+                    if (!scheduleStartDate) return 'Loading...';
+                    const interviewDate = getInterviewDate(selectedInterview.dayNumber, scheduleStartDate);
+                    const originalTime = new Date(selectedInterview.startTime);
+                    interviewDate.setHours(originalTime.getHours(), originalTime.getMinutes(), 0, 0);
+                    return format(interviewDate, 'EEEE, MMMM d, yyyy - h:mm a');
+                  })()}
                 </p>
                 <p className="text-xs text-gray-500 mt-1">
                   Duration: 60 minutes
@@ -417,7 +486,13 @@ export default function ScheduleCalendar({ currentDay, selectedOC }) {
                 </p>
                 <p className="font-semibold text-black">{selectedInterview.candidate.name}</p>
                 <p className="text-sm text-gray-600">
-                  {format(new Date(selectedInterview.startTime), 'EEEE, MMMM d, yyyy - h:mm a')}
+                  {(() => {
+                    if (!scheduleStartDate) return 'Loading...';
+                    const interviewDate = getInterviewDate(selectedInterview.dayNumber, scheduleStartDate);
+                    const originalTime = new Date(selectedInterview.startTime);
+                    interviewDate.setHours(originalTime.getHours(), originalTime.getMinutes(), 0, 0);
+                    return format(interviewDate, 'EEEE, MMMM d, yyyy - h:mm a');
+                  })()}
                 </p>
               </div>
 

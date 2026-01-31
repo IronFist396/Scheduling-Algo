@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
+import { getInterviewDate } from '../lib/dateUtils';
 
 export default function CandidatesPage() {
   const router = useRouter();
@@ -9,12 +10,27 @@ export default function CandidatesPage() {
   const [filteredCandidates, setFilteredCandidates] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
+  const [scheduleStartDate, setScheduleStartDate] = useState(null);
+
+  useEffect(() => {
+    fetchScheduleStartDate();
+  }, []);
 
   useEffect(() => {
     if (status) {
       fetchCandidates();
     }
   }, [status]);
+
+  async function fetchScheduleStartDate() {
+    try {
+      const res = await fetch('/api/stats');
+      const data = await res.json();
+      setScheduleStartDate(data.scheduleStartDate);
+    } catch (error) {
+      console.error('Error fetching schedule start date:', error);
+    }
+  }
 
   useEffect(() => {
     // Filter candidates based on search query
@@ -174,14 +190,28 @@ export default function CandidatesPage() {
                       {status === 'COMPLETED' ? 'Interview Completed' : 'Scheduled Interview'}
                     </div>
                     <div className="text-sm font-medium text-gray-900">
-                      {new Date(candidate.interviews[0].startTime).toLocaleString('en-US', {
-                        weekday: 'short',
-                        month: 'short',
-                        day: 'numeric',
-                        year: 'numeric',
-                        hour: 'numeric',
-                        minute: '2-digit',
-                      })}
+                      {(() => {
+                        if (!scheduleStartDate) return 'Loading...';
+                        const interview = candidate.interviews[0];
+                        const interviewDate = getInterviewDate(interview.dayNumber, scheduleStartDate);
+                        
+                        // Extract time from the original startTime
+                        const originalTime = new Date(interview.startTime);
+                        const hours = originalTime.getHours();
+                        const minutes = originalTime.getMinutes();
+                        
+                        // Set the correct date with the original time
+                        interviewDate.setHours(hours, minutes, 0, 0);
+                        
+                        return interviewDate.toLocaleString('en-US', {
+                          weekday: 'short',
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric',
+                          hour: 'numeric',
+                          minute: '2-digit',
+                        });
+                      })()}
                     </div>
                     {candidate.interviews[0].oc1 && candidate.interviews[0].oc2 && (
                       <div className="text-xs text-gray-600 mt-1">

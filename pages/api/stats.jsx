@@ -39,6 +39,7 @@ export default async function handler(req, res) {
       ocs,
       daysUsed,
       weeksUsed,
+      scheduleStartDate: '2026-01-12', // March 2, 2026 (Monday) - Week 1 starts here
     });
   } catch (error) {
     console.error('Error fetching stats:', error);
