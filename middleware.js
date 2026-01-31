@@ -1,4 +1,10 @@
-export { default } from "next-auth/middleware"
+import { withAuth } from "next-auth/middleware";
+
+export default withAuth({
+  callbacks: {
+    authorized: ({ token }) => !!token
+  },
+});
 
 export const config = {
   matcher: [
@@ -14,4 +20,4 @@ export const config = {
      */
     '/((?!api/auth|login|_next/static|_next/image|favicon.ico|logo|public).*)',
   ],
-}
+};
