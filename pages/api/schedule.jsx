@@ -35,7 +35,7 @@ export default async function handler(req, res) {
     const stats = scheduleInterviews(
       candidates,
       ocs,
-      startDate ? new Date(startDate) : new Date('2025-03-01'),
+      startDate ? new Date(startDate) : new Date('2026-01-12'), // January 12, 2026 (Monday)
       maxDays || 999 // Unlimited by default
     );
 

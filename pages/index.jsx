@@ -50,7 +50,7 @@ export default function Home() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          startDate: '2025-03-01', // Scheduler will find first Monday automatically
+          startDate: '2026-01-12', // January 12, 2026 (Monday) - Week 1
           maxDays: 999, // Unlimited days - schedule everyone
         }),
       });
