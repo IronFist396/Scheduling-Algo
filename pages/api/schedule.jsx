@@ -1,7 +1,12 @@
 import { prisma } from '../../lib/prisma';
 import { scheduleInterviews } from '../../lib/scheduler';
+import { requireAuth } from '../../lib/auth';
 
 export default async function handler(req, res) {
+  // Check authentication
+  const session = await requireAuth(req, res);
+  if (!session) return; // requireAuth already sent error response
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -35,7 +40,7 @@ export default async function handler(req, res) {
     const stats = scheduleInterviews(
       candidates,
       ocs,
-      startDate ? new Date(startDate) : new Date('2026-01-12'), // January 12, 2026 (Monday)
+      startDate ? new Date(startDate) : new Date(process.env.SCHEDULE_START_DATE),
       maxDays || 999 // Unlimited by default
     );
 

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { signOut, useSession } from 'next-auth/react';
 import ScheduleCalendar from '../components/ScheduleCalendar';
 import StatsPanel from '../components/StatsPanel';
 import ScheduleControls from '../components/ScheduleControls';
@@ -7,6 +8,7 @@ import TodayInterviews from '../components/TodayInterviews';
 import { calculateCurrentDay } from '../lib/dateUtils';
 
 export default function Home() {
+  const { data: session } = useSession();
   const [stats, setStats] = useState(null);
   const [currentDay, setCurrentDay] = useState(1);
   const [selectedOC, setSelectedOC] = useState(null);
@@ -50,8 +52,8 @@ export default function Home() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          startDate: '2026-01-12', // January 12, 2026 (Monday) - Week 1
-          maxDays: 999, // Unlimited days - schedule everyone
+          startDate: process.env.NEXT_PUBLIC_SCHEDULE_START_DATE,
+          maxDays: 999,
         }),
       });
 
@@ -101,19 +103,35 @@ export default function Home() {
               ISMP Interview Scheduler
             </h1>
             <div className="flex items-center gap-3">
+              {session?.user && (
+                <span className="text-white text-sm">
+                  {session.user.email}
+                </span>
+              )}
               <Link
                 href="/history"
                 className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2"
               >
-                <span>📜</span>
                 <span>Action History</span>
+              </Link>
+              <Link
+                href="/compare"
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
+              >
+                <span>Compare Algorithms</span>
               </Link>
               <button
                 onClick={runScheduler}
                 disabled={scheduling}
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {scheduling ? 'Scheduling...' : '🚀 Run Auto-Schedule'}
+                {scheduling ? 'Scheduling...' : 'Run Auto-Schedule'}
+              </button>
+              <button
+                onClick={() => signOut({ callbackUrl: '/login' })}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+              >
+                Logout
               </button>
             </div>
           </div>

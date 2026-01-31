@@ -1,6 +1,10 @@
 import { prisma } from '../../lib/prisma';
+import { requireAuth } from '../../lib/auth';
 
 export default async function handler(req, res) {
+  const session = await requireAuth(req, res);
+  if (!session) return;
+
   if (req.method === 'GET') {
     try {
       const { day, ocId } = req.query;

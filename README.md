@@ -23,13 +23,30 @@ CREATE DATABASE interview_scheduler;
 
 ### 2. Environment Configuration
 
-Create a `.env` file in the root directory:
+Create a `.env` file in the root directory (use `.env.example` as template):
 
 ```env
+# Database
 DATABASE_URL="postgresql://USERNAME:PASSWORD@localhost:5432/interview_scheduler?schema=public"
+
+# NextAuth Configuration
+NEXTAUTH_URL="http://localhost:3000"
+NEXTAUTH_SECRET="generate-a-random-secret-key-min-32-characters-long"
+
+# Admin User Credentials (for seeding)
+ADMIN_EMAIL="your-admin@example.com"
+ADMIN_PASSWORD="your-secure-password"
+ADMIN_NAME="Admin User"
+
+# Schedule Configuration
+SCHEDULE_START_DATE="2026-03-02"
 ```
 
-Replace `USERNAME` and `PASSWORD` with your PostgreSQL credentials.
+Replace:
+- `USERNAME` and `PASSWORD` with your PostgreSQL credentials
+- `NEXTAUTH_SECRET` with a random 32+ character string
+- `ADMIN_EMAIL` and `ADMIN_PASSWORD` with your desired admin credentials
+- `SCHEDULE_START_DATE` with your interview schedule start date (YYYY-MM-DD format)
 
 ### 3. Install Dependencies
 
@@ -51,10 +68,16 @@ npx prisma migrate dev --name init
 
 ### 6. Seed the Database
 
-This will parse the CSV and insert all candidates and OCs:
+Seed candidates and OCs from CSV:
 
 ```bash
 node prisma/seed.js
+```
+
+Seed admin user for authentication:
+
+```bash
+node prisma/seedUser.js
 ```
 
 ### 7. Run the Development Server
@@ -63,13 +86,37 @@ node prisma/seed.js
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) - you'll be redirected to the login page.
 
-[API routes](https://nextjs.org/docs/pages/building-your-application/routing/api-routes) can be accessed on [http://localhost:3000/api/hello](http://localhost:3000/api/hello). This endpoint can be edited in `pages/api/hello.js`.
+Login with the credentials you set in `.env`:
+- Email: Your `ADMIN_EMAIL`
+- Password: Your `ADMIN_PASSWORD`
 
-The `pages/api` directory is mapped to `/api/*`. Files in this directory are treated as [API routes](https://nextjs.org/docs/pages/building-your-application/routing/api-routes) instead of React pages.
+## Configuration
 
-This project uses [`next/font`](https://nextjs.org/docs/pages/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Schedule Start Date
+
+The interview schedule start date is configured via the `SCHEDULE_START_DATE` environment variable. This date is used throughout the application:
+
+- **API Routes**: Server-side scheduling calculations
+- **Frontend**: Calendar navigation and date display
+- **Algorithms**: All scheduling algorithm variants
+
+To change the schedule start date, simply update the `SCHEDULE_START_DATE` in your `.env` file:
+
+```env
+SCHEDULE_START_DATE="2026-03-02"  # Format: YYYY-MM-DD
+```
+
+**Important**: After changing the date, restart your development server for changes to take effect.
+
+### Authentication
+
+The application uses NextAuth.js for authentication. All routes and API endpoints are protected and require login.
+
+- **Login Page**: `/login`
+- **Protected Routes**: All pages except login
+- **Protected APIs**: All `/api/*` endpoints (except `/api/auth/*`)
 
 ## Learn More
 

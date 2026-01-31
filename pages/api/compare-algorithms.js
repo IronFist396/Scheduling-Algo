@@ -6,8 +6,12 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 const { compareAlgorithms, compareAlgorithmsMultiRun } = require('../../lib/compareAlgorithms');
+const { requireAuth } = require('../../lib/auth');
 
 export default async function handler(req, res) {
+  const session = await requireAuth(req, res);
+  if (!session) return;
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }

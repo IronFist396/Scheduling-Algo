@@ -3,8 +3,12 @@ import {
   rescheduleInterview,
 } from '../../lib/interviewActions';
 import { prisma } from '../../lib/prisma';
+import { requireAuth } from '../../lib/auth';
 
 export default async function handler(req, res) {
+  const session = await requireAuth(req, res);
+  if (!session) return;
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
