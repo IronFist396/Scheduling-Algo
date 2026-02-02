@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { getInterviewDate } from '../lib/dateUtils';
+import { exportScheduleToPDF } from '../lib/pdfExport';
 
 const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
 const TIME_SLOTS = [
@@ -210,6 +211,16 @@ export default function ScheduleCalendar({ currentDay, selectedOC, scheduleStart
             <p className="text-sm text-gray-600 mt-1">
               Days {weekStartDay}-{weekEndDay} • {interviews.length} interview{interviews.length !== 1 ? 's' : ''} scheduled
             </p>
+          </div>
+          {/* Export to PDF Button */}
+          <div className="mb-4">
+            <button
+              onClick={exportScheduleToPDF}
+              className="px-3 py-2 bg-[#6e5ffa] text-white rounded-lg hover:bg-[#5f51db] transition-colors text-sm font-medium flex items-center gap-2 shadow-sm"
+              title="Export full schedule to PDF"
+            >
+              <span>Export Full Schedule to PDF</span>
+            </button>
           </div>
           
           {/* Status Filter */}

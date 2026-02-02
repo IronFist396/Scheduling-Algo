@@ -7,19 +7,22 @@ export default async function handler(req, res) {
 
   if (req.method === 'GET') {
     try {
-      const { day, ocId } = req.query;
+      const { day, ocId, all } = req.query;
 
       let whereClause = {};
       
-      if (day) {
-        whereClause.dayNumber = parseInt(day);
-      }
-      
-      if (ocId) {
-        whereClause.OR = [
-          { oc1Id: ocId },
-          { oc2Id: ocId },
-        ];
+      // If 'all' parameter is present, fetch all interviews
+      if (!all) {
+        if (day) {
+          whereClause.dayNumber = parseInt(day);
+        }
+        
+        if (ocId) {
+          whereClause.OR = [
+            { oc1Id: ocId },
+            { oc2Id: ocId },
+          ];
+        }
       }
 
       const interviews = await prisma.interview.findMany({
