@@ -15,7 +15,7 @@ export default function TodayInterviews() {
     try {
       const res = await fetch('/api/today-interviews');
       const data = await res.json();
-      setTodayInterviews(data.interviews || []);
+      setTodayInterviews(data || []);
     } catch (error) {
       console.error('Error fetching today\'s interviews:', error);
     } finally {
@@ -84,64 +84,78 @@ export default function TodayInterviews() {
               <p className="text-gray-600 font-medium">No interviews scheduled for today!</p>
             </div>
           ) : (
-            <div className="space-y-3">
-              {pendingInterviews.map((interview) => (
-                <div
-                  key={interview.id}
-                  className="bg-white rounded-lg p-4 shadow-sm border border-blue-200 hover:shadow-md transition-shadow"
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <span className="text-2xl font-bold text-blue-600">
-                          {format(new Date(interview.startTime), 'h:mm a')}
-                        </span>
-                        <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-semibold rounded">
-                          UPCOMING
-                        </span>
-                      </div>
-                      <div className="space-y-1">
-                        <p className="font-semibold text-gray-900">{interview.candidate.name}</p>
-                        <p className="text-sm text-gray-600">
-                          {interview.candidate.department} • Year {interview.candidate.year}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          Interviewers: {interview.oc1.name} & {interview.oc2.name}
-                        </p>
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => markAsComplete(interview.id)}
-                      className="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium ml-4"
-                    >
-                      ✓ Complete
-                    </button>
-                  </div>
-                </div>
-              ))}
-
-              {completedInterviews.length > 0 && (
-                <div className="pt-4 mt-4 border-t border-gray-200">
-                  <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Completed Today</p>
-                  {completedInterviews.map((interview) => (
-                    <div
-                      key={interview.id}
-                      className="bg-green-50 rounded-lg p-3 mb-2 border border-green-200 opacity-75"
-                    >
-                      <div className="flex items-center gap-3">
-                        <span className="text-lg text-green-600">✓</span>
-                        <div className="flex-1">
-                          <p className="font-medium text-gray-900 text-sm">{interview.candidate.name}</p>
-                          <p className="text-xs text-gray-600">
-                            {format(new Date(interview.startTime), 'h:mm a')} • Completed
-                          </p>
+            <>
+              {/* Pending Interviews Carousel */}
+              {pendingInterviews.length > 0 && (
+                <div className="mb-6">
+                  <div className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-thin scrollbar-thumb-blue-300 scrollbar-track-blue-100">
+                    {pendingInterviews.map((interview) => (
+                      <div
+                        key={interview.id}
+                        className="flex-none w-80 bg-white rounded-lg p-4 shadow-sm border border-blue-200 hover:shadow-md transition-shadow snap-start"
+                      >
+                        <div className="flex flex-col h-full">
+                          <div className="flex items-center gap-3 mb-3">
+                            <span className="text-2xl font-bold text-blue-600">
+                              {format(new Date(interview.startTime), 'h:mm a')}
+                            </span>
+                            <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-semibold rounded">
+                              UPCOMING
+                            </span>
+                          </div>
+                          <div className="space-y-2 flex-1">
+                            <p className="font-semibold text-gray-900">{interview.candidate.name}</p>
+                            <p className="text-sm text-gray-600">
+                              {interview.candidate.department} • Year {interview.candidate.year}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              Roll: {interview.candidate.rollNumber}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              Interviewers: {interview.oc1.name} & {interview.oc2.name}
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => markAsComplete(interview.id)}
+                            className="w-full mt-3 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
+                          >
+                            ✓ Mark Complete
+                          </button>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               )}
-            </div>
+
+              {/* Completed Interviews Carousel */}
+              {completedInterviews.length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold text-gray-500 uppercase mb-3">Completed Today</p>
+                  <div className="flex gap-3 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-thin scrollbar-thumb-green-300 scrollbar-track-green-100">
+                    {completedInterviews.map((interview) => (
+                      <div
+                        key={interview.id}
+                        className="flex-none w-64 bg-green-50 rounded-lg p-3 border border-green-200 opacity-75 snap-start"
+                      >
+                        <div className="flex items-start gap-3">
+                          <span className="text-xl text-green-600 mt-1">✓</span>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-gray-900 text-sm truncate">{interview.candidate.name}</p>
+                            <p className="text-xs text-gray-600">
+                              {format(new Date(interview.startTime), 'h:mm a')}
+                            </p>
+                            <p className="text-xs text-gray-500 truncate">
+                              {interview.candidate.department}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
       )}
