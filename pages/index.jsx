@@ -14,10 +14,17 @@ export default function Home() {
   const [selectedOC, setSelectedOC] = useState(null);
   const [loading, setLoading] = useState(true);
   const [scheduling, setScheduling] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     fetchStats();
   }, []);
+
+  const handleInterviewUpdate = () => {
+    // Refresh stats and increment key to force re-render of all components
+    fetchStats();
+    setRefreshKey(prev => prev + 1);
+  };
 
   async function fetchStats() {
     try {
@@ -144,7 +151,7 @@ export default function Home() {
         <StatsPanel stats={stats} />
 
         {/* Today's Interviews Widget */}
-        <TodayInterviews />
+        <TodayInterviews key={`today-${refreshKey}`} onInterviewUpdate={handleInterviewUpdate} />
 
         {/* Controls */}
         <ScheduleControls
@@ -161,9 +168,11 @@ export default function Home() {
 
         {/* Calendar */}
         <ScheduleCalendar
+          key={`calendar-${refreshKey}`}
           currentDay={currentDay}
           selectedOC={selectedOC}
           scheduleStartDate={stats?.scheduleStartDate}
+          onInterviewUpdate={handleInterviewUpdate}
         />
       </main>
     </div>

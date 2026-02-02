@@ -21,7 +21,7 @@ function normalizeTime(timeStr) {
   return timeStr.toLowerCase().replace(/\s+/g, ' ');
 }
 
-export default function ScheduleCalendar({ currentDay, selectedOC, scheduleStartDate }) {
+export default function ScheduleCalendar({ currentDay, selectedOC, scheduleStartDate, onInterviewUpdate }) {
   const [interviews, setInterviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedInterview, setSelectedInterview] = useState(null);
@@ -93,6 +93,10 @@ export default function ScheduleCalendar({ currentDay, selectedOC, scheduleStart
         alert('Interview marked as completed!');
         fetchInterviews();
         setSelectedInterview(null);
+        // Notify parent to refresh all components
+        if (onInterviewUpdate) {
+          onInterviewUpdate();
+        }
       } else {
         alert('Error: ' + result.message);
       }
@@ -143,6 +147,10 @@ export default function ScheduleCalendar({ currentDay, selectedOC, scheduleStart
         setSelectedInterview(null);
         setShowRescheduleModal(false);
         setRescheduleReason('');
+        // Notify parent to refresh all components
+        if (onInterviewUpdate) {
+          onInterviewUpdate();
+        }
       } else {
         alert('Error: ' + result.message);
       }
