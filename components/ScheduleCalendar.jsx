@@ -31,6 +31,7 @@ export default function ScheduleCalendar({ currentDay, selectedOC, scheduleStart
 
   useEffect(() => {
     fetchInterviews();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentDay, selectedOC]);
 
   async function fetchInterviews() {

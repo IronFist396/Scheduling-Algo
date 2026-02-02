@@ -25,12 +25,14 @@ export default function ScheduleControls({
 
   const goToPreviousWeek = () => {
     const prevWeekStartDay = Math.max(1, weekStartDay - 5);
-    setCurrentDay(prevWeekStartDay);
+    if (prevWeekStartDay !== currentDay) {
+      setCurrentDay(prevWeekStartDay);
+    }
   };
 
   const goToNextWeek = () => {
     const nextWeekStartDay = weekStartDay + 5;
-    if (nextWeekStartDay <= maxWeek * 5) {
+    if (nextWeekStartDay <= maxWeek * 5 && nextWeekStartDay !== currentDay) {
       setCurrentDay(nextWeekStartDay);
     }
   };
