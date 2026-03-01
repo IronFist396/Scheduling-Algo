@@ -224,10 +224,10 @@ export default function ScheduleCalendar({ currentDay, selectedOC, scheduleStart
           <div className="mb-4">
             <button
               onClick={exportScheduleToPDF}
-              className="px-3 py-2 bg-[#6e5ffa] text-white rounded-lg hover:bg-[#5f51db] transition-colors text-sm font-medium flex items-center gap-2 shadow-sm"
+              className="px-4 py-2 bg-emerald-100 text-emerald-900 rounded-lg hover:bg-emerald-200 transition-colors text-sm font-semibold tracking-wide"
               title="Export full schedule to PDF"
             >
-              <span>Export Full Schedule to PDF</span>
+              Export to PDF
             </button>
           </div>
           

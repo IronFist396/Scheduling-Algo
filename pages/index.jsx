@@ -67,18 +67,16 @@ export default function Home() {
       const data = await res.json();
       
       if (data.success) {
-        const msg = `✅ Scheduling Complete!\n\n` +
-          `📊 Statistics:\n` +
-          `• Total Candidates: ${data.stats.totalCandidates}\n` +
-          `• Scheduled: ${data.stats.scheduled}\n` +
-          `• Unscheduled: ${data.stats.unscheduled}\n\n` +
-          `📅 Timeline:\n` +
-          `• Working Days: ${data.stats.daysUsed}\n` +
-          `• Weeks: ${data.stats.weeksUsed}\n\n` +
-          (data.stats.unscheduled > 0 ? 
-            `⚠️ ${data.stats.unscheduled} candidate(s) could not be scheduled (no common slots with OCs)` : 
-            `✅ All candidates successfully scheduled!`);
-        
+        const unscheduledNote = data.stats.unscheduled > 0
+          ? `\n\n${data.stats.unscheduled} candidate(s) could not be scheduled (no common slots with OCs)`
+          : `\n\nAll candidates successfully scheduled.`;
+
+        const msg =
+          `Scheduling complete.\n\n` +
+          `Scheduled: ${data.stats.scheduled} / ${data.stats.totalCandidates}\n` +
+          `Working days: ${data.stats.daysUsed} (${data.stats.weeksUsed} week${data.stats.weeksUsed !== 1 ? 's' : ''})` +
+          unscheduledNote;
+
         alert(msg);
         fetchStats();
         window.location.reload();
@@ -117,15 +115,15 @@ export default function Home() {
               )}
               <Link
                 href="/history"
-                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2"
+                className="px-4 py-2 bg-[#1e3a6e] text-white rounded-lg hover:bg-[#162d55] transition-colors"
               >
-                <span>Action History</span>
+                Action History
               </Link>
               <Link
                 href="/compare"
-                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
+                className="px-4 py-2 bg-[#1e3a6e] text-white rounded-lg hover:bg-[#162d55] transition-colors"
               >
-                <span>Compare Algorithms</span>
+                Compare Algorithms
               </Link>
               <button
                 onClick={runScheduler}

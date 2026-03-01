@@ -15,32 +15,36 @@ export default function StatsPanel({ stats }) {
     {
       label: 'Total Candidates',
       value: stats.totalCandidates,
-      color: 'bg-blue-50 text-blue-700',
-      icon: '👥',
+      bg: 'bg-sky-100',
+      text: 'text-sky-900',
+      sub: 'text-sky-500',
       status: 'ALL',
       clickable: true,
     },
     {
       label: 'Scheduled',
       value: stats.scheduled,
-      color: 'bg-green-50 text-green-700',
-      icon: '✅',
+      bg: 'bg-emerald-100',
+      text: 'text-emerald-900',
+      sub: 'text-emerald-500',
       status: 'SCHEDULED',
       clickable: true,
     },
     {
       label: 'Completed',
       value: stats.completed,
-      color: 'bg-purple-50 text-purple-700',
-      icon: '🎯',
+      bg: 'bg-violet-100',
+      text: 'text-violet-900',
+      sub: 'text-violet-500',
       status: 'COMPLETED',
       clickable: true,
     },
     {
       label: 'Unscheduled',
       value: stats.unscheduled,
-      color: 'bg-orange-50 text-orange-700',
-      icon: '⏳',
+      bg: 'bg-orange-100',
+      text: 'text-orange-900',
+      sub: 'text-orange-400',
       status: 'PENDING',
       clickable: false,
     },
@@ -52,19 +56,14 @@ export default function StatsPanel({ stats }) {
         <div
           key={index}
           onClick={() => stat.clickable && handleCardClick(stat.status)}
-          className={`${stat.color} rounded-lg p-6 shadow-sm ${
-            stat.clickable ? 'cursor-pointer hover:shadow-md transition-shadow' : ''
+          className={`${stat.bg} rounded-xl px-6 py-5 shadow-sm ${
+            stat.clickable ? 'cursor-pointer hover:opacity-90 transition-opacity' : ''
           }`}
         >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium opacity-80">{stat.label}</p>
-              <p className="text-3xl font-bold mt-2">{stat.value}</p>
-            </div>
-            <div className="text-4xl">{stat.icon}</div>
-          </div>
+          <p className={`text-xs font-semibold uppercase tracking-widest ${stat.sub}`}>{stat.label}</p>
+          <p className={`text-4xl font-bold mt-2 leading-none ${stat.text}`}>{stat.value}</p>
           {stat.clickable && (
-            <p className="text-xs opacity-60 mt-2">Click to view candidates</p>
+            <p className={`text-xs mt-3 ${stat.sub}`}>View candidates &rarr;</p>
           )}
         </div>
       ))}

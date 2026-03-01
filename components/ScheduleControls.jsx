@@ -123,11 +123,10 @@ export default function ScheduleControls({
           {/* Calendar Date Picker Button */}
           <button
             onClick={() => setShowDatePicker(!showDatePicker)}
-            className="px-3 py-2 bg-purple-400 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2"
+            className="px-3 py-2 bg-gray-100 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-200 transition-colors text-sm font-medium"
             title="Jump to specific date"
           >
-            <span>📅</span>
-            <span className="text-sm font-medium">Jump to Date</span>
+            Jump to Date
           </button>
 
           {/* Today Button */}
@@ -144,21 +143,14 @@ export default function ScheduleControls({
 
         {/* Timeline Stats */}
         {daysUsed > 0 && (
-          <div className="flex items-center gap-4 bg-blue-50 px-4 py-2 rounded-lg border border-blue-200">
-            <div className="flex items-center gap-2">
-              <span className="text-2xl">📅</span>
-              <div>
-                <div className="text-xs text-gray-600 uppercase">Total Days</div>
-                <div className="text-lg font-bold text-blue-700">{daysUsed}</div>
-              </div>
+          <div className="flex items-center gap-2">
+            <div className="bg-sky-100 rounded-lg px-4 py-2 text-center min-w-[80px]">
+              <div className="text-xs font-semibold uppercase tracking-widest text-sky-500">Days</div>
+              <div className="text-2xl font-bold text-sky-900 leading-tight">{daysUsed}</div>
             </div>
-            <div className="h-8 w-px bg-blue-300"></div>
-            <div className="flex items-center gap-2">
-              <span className="text-2xl">📊</span>
-              <div>
-                <div className="text-xs text-gray-600 uppercase">Total Weeks</div>
-                <div className="text-lg font-bold text-blue-700">{weeksUsed}</div>
-              </div>
+            <div className="bg-violet-100 rounded-lg px-4 py-2 text-center min-w-[80px]">
+              <div className="text-xs font-semibold uppercase tracking-widest text-violet-500">Weeks</div>
+              <div className="text-2xl font-bold text-violet-900 leading-tight">{weeksUsed}</div>
             </div>
           </div>
         )}
@@ -166,7 +158,7 @@ export default function ScheduleControls({
 
       {/* Date Picker Modal */}
       {showDatePicker && (
-        <div className="mt-4 p-4 bg-purple-50 border border-purple-200 rounded-lg">
+        <div className="mt-4 p-4 bg-gray-50 border border-gray-200 rounded-lg">
           <div className="flex items-center gap-3">
             <label className="text-sm font-medium text-gray-700">
               Select Date:
@@ -175,12 +167,12 @@ export default function ScheduleControls({
               type="date"
               value={selectedDate}
               onChange={(e) => setSelectedDate(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             <button
               onClick={jumpToDate}
               disabled={!selectedDate}
-              className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium transition-colors"
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium transition-colors"
             >
               Jump
             </button>

@@ -180,21 +180,21 @@ export default function Dashboard() {
                       disabled={actionLoading === interview.id}
                       className="w-full bg-green-500 hover:bg-green-600 text-white font-medium py-2 px-4 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      {actionLoading === interview.id ? 'Processing...' : '✅ Complete'}
+                      {actionLoading === interview.id ? 'Processing...' : 'Complete'}
                     </button>
                     <button
                       onClick={() => handleAction('candidate_unavailable', interview.id)}
                       disabled={actionLoading === interview.id}
                       className="w-full bg-yellow-500 hover:bg-yellow-600 text-white font-medium py-2 px-4 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      {actionLoading === interview.id ? 'Processing...' : '🔄 Candidate Unavailable'}
+                      {actionLoading === interview.id ? 'Processing...' : 'Candidate Unavailable'}
                     </button>
                     <button
                       onClick={() => handleAction('interviewer_unavailable', interview.id)}
                       disabled={actionLoading === interview.id}
                       className="w-full bg-red-500 hover:bg-red-600 text-white font-medium py-2 px-4 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      {actionLoading === interview.id ? 'Processing...' : '⚠️ Interviewer Unavailable'}
+                      {actionLoading === interview.id ? 'Processing...' : 'Interviewer Unavailable'}
                     </button>
                   </div>
                 )}
