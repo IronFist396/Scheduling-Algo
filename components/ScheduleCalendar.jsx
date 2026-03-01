@@ -26,6 +26,7 @@ export default function ScheduleCalendar({ currentDay, selectedOC, scheduleStart
   const [loading, setLoading] = useState(true);
   const [selectedInterview, setSelectedInterview] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
+  const [emailLoading, setEmailLoading] = useState(false);
   const [showRescheduleModal, setShowRescheduleModal] = useState(false);
   const [rescheduleReason, setRescheduleReason] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL'); // ALL, SCHEDULED, COMPLETED
@@ -159,6 +160,29 @@ export default function ScheduleCalendar({ currentDay, selectedOC, scheduleStart
       alert('Failed to reschedule interview');
     } finally {
       setActionLoading(false);
+    }
+  }
+
+  async function handleSendEmail(interviewId) {
+    console.log("Send Email API Hit")
+    setEmailLoading(true);
+    try {
+      const res = await fetch('/api/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ interviewId }),
+      });
+      const result = await res.json();
+      if (result.success) {
+        alert('Email sent successfully!');
+      } else {
+        alert('Failed to send email: ' + (result.error || 'Unknown error'));
+      }
+    } catch (error) {
+      console.error('Error sending email:', error);
+      alert('Failed to send email');
+    } finally {
+      setEmailLoading(false);
     }
   }
 
@@ -440,7 +464,21 @@ export default function ScheduleCalendar({ currentDay, selectedOC, scheduleStart
                 </div>
               )}
 
-              <div className="flex gap-3 mt-6">
+              {/* Send Email Button — always visible */}
+              <div className="mt-6">
+                <button
+                  onClick={() => handleSendEmail(selectedInterview.id)}
+                  disabled={emailLoading}
+                  className="w-full px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                  {emailLoading ? 'Sending...' : 'Send Email'}
+                </button>
+              </div>
+
+              <div className="flex gap-3 mt-3">
                 {selectedInterview.status === 'SCHEDULED' && !selectedInterview.isCompleted && (
                   <>
                     <button

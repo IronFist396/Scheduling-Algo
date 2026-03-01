@@ -5,6 +5,7 @@ export default function Dashboard() {
   const [interviews, setInterviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(null);
+  const [emailLoading, setEmailLoading] = useState(null);
   const [toast, setToast] = useState(null);
 
   useEffect(() => {
@@ -44,6 +45,28 @@ export default function Dashboard() {
       showToast('Failed to perform action', 'error');
     } finally {
       setActionLoading(null);
+    }
+  };
+
+  const handleSendEmail = async (interviewId) => {
+    setEmailLoading(interviewId);
+    try {
+      const res = await fetch('/api/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ interviewId }),
+      });
+      const result = await res.json();
+
+      if (result.success) {
+        showToast('Email sent successfully!', 'success');
+      } else {
+        showToast(result.error || 'Failed to send email', 'error');
+      }
+    } catch (error) {
+      showToast('Failed to send email', 'error');
+    } finally {
+      setEmailLoading(null);
     }
   };
 
@@ -170,6 +193,20 @@ export default function Dashboard() {
                       {interview.oc2.name}
                     </span>
                   </div>
+                </div>
+
+                {/* Send Email Button */}
+                <div className="mb-3">
+                  <button
+                    onClick={() => handleSendEmail(interview.id)}
+                    disabled={emailLoading === interview.id}
+                    className="w-full bg-indigo-500 hover:bg-indigo-600 text-white font-medium py-2 px-4 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                    {emailLoading === interview.id ? 'Sending...' : 'Send Email'}
+                  </button>
                 </div>
 
                 {/* Action Buttons - Only show if SCHEDULED */}

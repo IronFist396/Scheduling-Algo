@@ -17,13 +17,13 @@ const SLOT_MAPPING = {
   '7PM-8:30PM': { start: '19:00', end: '20:30' },
 };
 
-// Day mapping
+// Day mapping — CSV uses \r\n (Windows line endings) in headers
 const DAY_COLUMNS = {
-  monday: 'Monday\nMark the slots in which you DO NOT have academic commitments.',
-  tuesday: 'Tuesday\nMark the slots in which you DO NOT have academic commitments.',
-  wednesday: 'Wednesday\nMark the slots in which you DO NOT have academic commitments.',
-  thursday: 'Thursday\nMark the slots in which you DO NOT have academic commitments.',
-  friday: 'Friday\nMark the slots in which you DO NOT have academic commitments.',
+  monday: 'Monday\r\nMark the slots in which you DO NOT have academic commitments.',
+  tuesday: 'Tuesday\r\nMark the slots in which you DO NOT have academic commitments.',
+  wednesday: 'Wednesday\r\nMark the slots in which you DO NOT have academic commitments.',
+  thursday: 'Thursday\r\nMark the slots in which you DO NOT have academic commitments.',
+  friday: 'Friday\r\nMark the slots in which you DO NOT have academic commitments.',
 };
 
 function parseAvailability(row) {
@@ -91,8 +91,8 @@ async function seedOCs() {
 
 async function seedCandidates() {
   console.log('📋 Seeding candidates from CSV...');
-
-  const csvPath = path.join(__dirname, '..', 'Application Form- ISMP Mentors 2025-26 (Responses).csv');
+// Scheduling-Algo/data/Interview Scheduler - Sheet1.csv
+  const csvPath = path.join(__dirname, '..', 'Interview Scheduler - Sheet1.csv');
   
   if (!fs.existsSync(csvPath)) {
     console.error(`❌ CSV file not found at: ${csvPath}`);
@@ -114,9 +114,9 @@ async function seedCandidates() {
 
   for (const [index, row] of records.entries()) {
     try {
-      const rollNumber = row['Roll number'];
-      const firstName = row['First Name'];
-      const lastName = row['Last Name'];
+      const rollNumber = row['roll number'];
+      const firstName = row['first name'];
+      const lastName = row['last name'];
       
       if (!rollNumber || !firstName) {
         console.warn(`⚠️  Skipping row ${index + 1}: Missing required fields`);
@@ -130,22 +130,22 @@ async function seedCandidates() {
         where: { rollNumber },
         update: {
           name: `${firstName} ${lastName}`.trim(),
-          email: row['Email ID'] || `${rollNumber}@iitb.ac.in`,
-          department: row['Department'] || 'Unknown',
-          year: row['Current year of study'] || 'Unknown',
-          hostel: row['Hostel'],
-          contactNumber: row['Contact Number'],
+          email: row['email id'] || `${rollNumber}@iitb.ac.in`,
+          department: row['department'] || 'Unknown',
+          year: row['year of study'] || 'Unknown',
+          hostel: row['hostel'],
+          contactNumber: row['contact number'],
           availability,
           comments: row['Comments\nIf you are not available on any particular day during the month of March or April, please mention here with the specified format : date, reason. \nExample - April 12-15, travelling to home'],
         },
         create: {
           rollNumber,
           name: `${firstName} ${lastName}`.trim(),
-          email: row['Email ID'] || `${rollNumber}@iitb.ac.in`,
-          department: row['Department'] || 'Unknown',
-          year: row['Current year of study'] || 'Unknown',
-          hostel: row['Hostel'],
-          contactNumber: row['Contact Number'],
+          email: row['email id'] || `${rollNumber}@iitb.ac.in`,
+          department: row['department'] || 'Unknown',
+          year: row['year of study'] || 'Unknown',
+          hostel: row['hostel'],
+          contactNumber: row['contact number'],
           availability,
           comments: row['Comments\nIf you are not available on any particular day during the month of March or April, please mention here with the specified format : date, reason. \nExample - April 12-15, travelling to home'],
         },
