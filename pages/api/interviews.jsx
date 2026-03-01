@@ -49,6 +49,18 @@ export default async function handler(req, res) {
               email: true,
             },
           },
+          reviewer1: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+          reviewer2: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
         },
         orderBy: {
           startTime: 'asc',

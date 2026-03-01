@@ -65,6 +65,22 @@ model OC {
   @@map("ocs")
 }
 
+// Senior reviewers (not SPMC OCs, but senior members who pair with an SPMC per panel)
+model Reviewer {
+  id           String      @id @default(cuid())
+  name         String
+  email        String      @unique
+  department   String
+  // Store availability as JSON: {"monday": ["9:30AM-10:30AM", ...], ...}
+  availability Json
+  createdAt    DateTime    @default(now())
+
+  interviewsAsReviewer1 Interview[] @relation("Reviewer1")
+  interviewsAsReviewer2 Interview[] @relation("Reviewer2")
+
+  @@map("reviewers")
+}
+
 model Interview {
   id              String          @id @default(cuid())
   candidateId     String
@@ -75,6 +91,14 @@ model Interview {
   
   oc2Id           String
   oc2             OC              @relation("OC2", fields: [oc2Id], references: [id])
+
+  // Optional reviewer paired with oc1 (Panel A = oc1 + reviewer1)
+  reviewer1Id     String?
+  reviewer1       Reviewer?       @relation("Reviewer1", fields: [reviewer1Id], references: [id])
+
+  // Optional reviewer paired with oc2 (Panel B = oc2 + reviewer2)
+  reviewer2Id     String?
+  reviewer2       Reviewer?       @relation("Reviewer2", fields: [reviewer2Id], references: [id])
   
   startTime       DateTime
   endTime         DateTime

@@ -32,6 +32,14 @@ export default async function handler(req, res) {
       },
     });
 
+    const reviewers = await prisma.reviewer.findMany({
+      select: {
+        id: true,
+        name: true,
+        availability: true,
+      },
+    });
+
     if (ocs.length < 2) {
       return res.status(400).json({ error: 'At least 2 OCs are required' });
     }
@@ -40,6 +48,7 @@ export default async function handler(req, res) {
     const stats = scheduleInterviews(
       candidates,
       ocs,
+      reviewers,
       startDate ? new Date(startDate) : new Date(process.env.SCHEDULE_START_DATE),
       maxDays || 999 // Unlimited by default
     );

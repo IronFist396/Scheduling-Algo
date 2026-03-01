@@ -167,6 +167,47 @@ async function seedCandidates() {
   }
 }
 
+async function seedReviewers() {
+  console.log('🔍 Seeding Reviewers...');
+
+  const reviewers = [
+    {
+      name: 'Rohan Mehta',
+      email: 'rohan.mehta@iitb.ac.in',
+      department: 'Computer Science and Engineering',
+      availability: {
+        monday: ['9:30AM-10:30AM', '11:30AM-12:30PM', '2PM-3:30PM', '5:30PM-7PM', '7PM-8:30PM'],
+        tuesday: ['10:30AM-11:30AM', '11:30AM-12:30PM', '12:30PM-2PM', '3:30PM-5PM', '7PM-8:30PM'],
+        wednesday: ['9:30AM-10:30AM', '12:30PM-2PM', '2PM-3:30PM', '5:30PM-7PM', '7PM-8:30PM'],
+        thursday: ['9:30AM-10:30AM', '10:30AM-11:30AM', '2PM-3:30PM', '3:30PM-5PM', '7PM-8:30PM'],
+        friday: ['11:30AM-12:30PM', '12:30PM-2PM', '3:30PM-5PM', '5:30PM-7PM', '7PM-8:30PM'],
+      },
+    },
+    {
+      name: 'Priya Nair',
+      email: 'priya.nair@iitb.ac.in',
+      department: 'Electrical Engineering',
+      availability: {
+        monday: ['10:30AM-11:30AM', '12:30PM-2PM', '3:30PM-5PM', '5:30PM-7PM'],
+        tuesday: ['9:30AM-10:30AM', '11:30AM-12:30PM', '2PM-3:30PM', '5:30PM-7PM', '7PM-8:30PM'],
+        wednesday: ['10:30AM-11:30AM', '11:30AM-12:30PM', '3:30PM-5PM', '5:30PM-7PM', '7PM-8:30PM'],
+        thursday: ['9:30AM-10:30AM', '12:30PM-2PM', '2PM-3:30PM', '5:30PM-7PM', '7PM-8:30PM'],
+        friday: ['9:30AM-10:30AM', '10:30AM-11:30AM', '2PM-3:30PM', '3:30PM-5PM', '7PM-8:30PM'],
+      },
+    },
+  ];
+
+  for (const reviewer of reviewers) {
+    await prisma.reviewer.upsert({
+      where: { email: reviewer.email },
+      update: reviewer,
+      create: reviewer,
+    });
+  }
+
+  console.log(`✅ Created ${reviewers.length} Reviewers`);
+}
+
 async function main() {
   console.log('🌱 Starting database seed...\n');
 
@@ -175,11 +216,13 @@ async function main() {
     console.log('🧹 Cleaning existing data...');
     await prisma.interview.deleteMany({});
     await prisma.candidate.deleteMany({});
+    await prisma.reviewer.deleteMany({});
     await prisma.oC.deleteMany({});
     console.log('✅ Database cleaned\n');
 
     // Seed data
     await seedOCs();
+    await seedReviewers();
     await seedCandidates();
 
     console.log('\n✅ Seeding completed successfully!');

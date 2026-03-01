@@ -332,7 +332,8 @@ export default function ScheduleCalendar({ currentDay, selectedOC, scheduleStart
                                 {interview.candidate.department}
                               </div>
                               <div className="text-xs text-gray-500 mt-1">
-                                {interview.oc1.name.split(' ')[0]} & {interview.oc2.name.split(' ')[0]}
+                                {interview.oc1.name.split(' ')[0]}
+                                {interview.reviewer1 ? ` + ${interview.reviewer1.name.split(' ')[0]}` : ''}
                               </div>
                               <div className="text-xs font-medium text-blue-600 mt-1">
                                 60 mins
@@ -389,9 +390,13 @@ export default function ScheduleCalendar({ currentDay, selectedOC, scheduleStart
               </div>
 
               <div>
-                <label className="text-sm font-medium text-gray-600">Interviewers</label>
+                <label className="text-sm font-medium text-gray-600">Panel</label>
                 <p className="text-sm text-black">
-                  {selectedInterview.oc1.name} & {selectedInterview.oc2.name}
+                  {selectedInterview.oc1.name}
+                  {selectedInterview.reviewer1 ? ` + ${selectedInterview.reviewer1.name}` : ''}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  Other SPMC: {selectedInterview.oc2.name}
                 </p>
               </div>
 

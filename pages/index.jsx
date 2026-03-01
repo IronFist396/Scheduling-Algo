@@ -135,7 +135,7 @@ export default function Home() {
                 {scheduling ? 'Scheduling...' : 'Run Auto-Schedule'}
               </button>
               <button
-                onClick={() => signOut({ callbackUrl: '/login' })}
+                onClick={() => signOut({ callbackUrl: `${window.location.origin}/login` })}
                 className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
               >
                 Logout
