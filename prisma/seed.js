@@ -15,6 +15,9 @@ const SLOT_MAPPING = {
   '3:30PM-5PM': { start: '15:30', end: '17:00' },
   '5:30PM-7PM': { start: '17:30', end: '19:00' },
   '7PM-8:30PM': { start: '19:00', end: '20:30' },
+  '9:30PM-10:30PM': { start: '21:30', end: '22:30' },
+  '10:30PM-11:30PM': { start: '22:30', end: '23:30' },
+  '11:30PM-12:30AM': { start: '23:30', end: '00:30' },
 };
 
 // Day mapping — CSV uses \r\n (Windows line endings) in headers
@@ -30,6 +33,7 @@ function parseAvailability(row) {
   const ALL_SLOTS = [
     '9:30AM-10:30AM', '10:30AM-11:30AM', '11:30AM-12:30PM', '12:30PM-2PM',
     '2PM-3:30PM', '3:30PM-5PM', '5:30PM-7PM', '7PM-8:30PM',
+    '9:30PM-10:30PM', '10:30PM-11:30PM', '11:30PM-12:30AM',
   ];
 
   const availability = {
@@ -42,12 +46,18 @@ function parseAvailability(row) {
     sunday: ALL_SLOTS,
   };
 
+  // Night slots not present in the CSV form — assumed free for everyone every day
+  const NIGHT_SLOTS = ['9:30PM-10:30PM', '10:30PM-11:30PM', '11:30PM-12:30AM'];
+
   Object.entries(DAY_COLUMNS).forEach(([day, columnName]) => {
     const slotsString = row[columnName] || '';
     if (slotsString) {
       // Split by comma and trim
       const slots = slotsString.split(',').map(s => s.trim()).filter(s => s);
-      availability[day] = slots;
+      availability[day] = [...slots, ...NIGHT_SLOTS];
+    } else {
+      // No daytime availability selected, but night slots still apply
+      availability[day] = [...NIGHT_SLOTS];
     }
   });
 
@@ -80,13 +90,13 @@ async function seedOCs() {
       email: 'amritansh@iitb.ac.in',
       department: 'Metallurgical Engineering and Materials Science',
       availability: {
-        monday: ['9:30AM-10:30AM', '10:30AM-11:30AM', '11:30AM-12:30PM', '2PM-3:30PM', '3:30PM-5PM', '5:30PM-7PM', '7PM-8:30PM'],
-        tuesday: ['9:30AM-10:30AM', '10:30AM-11:30AM', '11:30AM-12:30PM', '12:30PM-2PM', '2PM-3:30PM', '3:30PM-5PM', '5:30PM-7PM', '7PM-8:30PM'],
-        wednesday: ['11:30AM-12:30PM', '12:30PM-2PM', '2PM-3:30PM', '3:30PM-5PM', '5:30PM-7PM', '7PM-8:30PM'],
-        thursday: ['9:30AM-10:30AM', '10:30AM-11:30AM', '11:30AM-12:30PM', '12:30PM-2PM', '3:30PM-5PM', '5:30PM-7PM', '7PM-8:30PM'],
-        friday: ['11:30AM-12:30PM', '12:30PM-2PM', '2PM-3:30PM', '3:30PM-5PM', '5:30PM-7PM', '7PM-8:30PM'],
-        saturday: ['9:30AM-10:30AM', '10:30AM-11:30AM', '11:30AM-12:30PM', '12:30PM-2PM', '2PM-3:30PM', '3:30PM-5PM', '5:30PM-7PM', '7PM-8:30PM'],
-        sunday: ['9:30AM-10:30AM', '10:30AM-11:30AM', '11:30AM-12:30PM', '12:30PM-2PM', '2PM-3:30PM', '3:30PM-5PM', '5:30PM-7PM', '7PM-8:30PM'],
+        monday: ['9:30AM-10:30AM', '10:30AM-11:30AM', '11:30AM-12:30PM', '2PM-3:30PM', '3:30PM-5PM', '5:30PM-7PM', '7PM-8:30PM', '9:30PM-10:30PM', '10:30PM-11:30PM', '11:30PM-12:30AM'],
+        tuesday: ['9:30AM-10:30AM', '10:30AM-11:30AM', '11:30AM-12:30PM', '12:30PM-2PM', '2PM-3:30PM', '3:30PM-5PM', '5:30PM-7PM', '7PM-8:30PM', '9:30PM-10:30PM', '10:30PM-11:30PM', '11:30PM-12:30AM'],
+        wednesday: ['11:30AM-12:30PM', '12:30PM-2PM', '2PM-3:30PM', '3:30PM-5PM', '5:30PM-7PM', '7PM-8:30PM', '9:30PM-10:30PM', '10:30PM-11:30PM', '11:30PM-12:30AM'],
+        thursday: ['9:30AM-10:30AM', '10:30AM-11:30AM', '11:30AM-12:30PM', '12:30PM-2PM', '3:30PM-5PM', '5:30PM-7PM', '7PM-8:30PM', '9:30PM-10:30PM', '10:30PM-11:30PM', '11:30PM-12:30AM'],
+        friday: ['11:30AM-12:30PM', '12:30PM-2PM', '2PM-3:30PM', '3:30PM-5PM', '5:30PM-7PM', '7PM-8:30PM', '9:30PM-10:30PM', '10:30PM-11:30PM', '11:30PM-12:30AM'],
+        saturday: ['9:30AM-10:30AM', '10:30AM-11:30AM', '11:30AM-12:30PM', '12:30PM-2PM', '2PM-3:30PM', '3:30PM-5PM', '5:30PM-7PM', '7PM-8:30PM', '9:30PM-10:30PM', '10:30PM-11:30PM', '11:30PM-12:30AM'],
+        sunday: ['9:30AM-10:30AM', '10:30AM-11:30AM', '11:30AM-12:30PM', '12:30PM-2PM', '2PM-3:30PM', '3:30PM-5PM', '5:30PM-7PM', '7PM-8:30PM', '9:30PM-10:30PM', '10:30PM-11:30PM', '11:30PM-12:30AM'],
       },
     },
     {
@@ -94,13 +104,13 @@ async function seedOCs() {
       email: 'sara@iitb.ac.in',
       department: 'Energy Science and Engineering',
       availability: {
-        monday: ['9:30AM-10:30AM', '10:30AM-11:30AM', '11:30AM-12:30PM', '12:30PM-2PM', '2PM-3:30PM', '3:30PM-5PM', '7PM-8:30PM'],
-        tuesday: ['9:30AM-10:30AM', '10:30AM-11:30AM', '11:30AM-12:30PM', '2PM-3:30PM', '3:30PM-5PM', '5:30PM-7PM', '7PM-8:30PM'],
-        wednesday: ['9:30AM-10:30AM', '10:30AM-11:30AM', '11:30AM-12:30PM', '12:30PM-2PM', '2PM-3:30PM', '3:30PM-5PM', '5:30PM-7PM', '7PM-8:30PM'],
-        thursday: ['9:30AM-10:30AM', '10:30AM-11:30AM', '11:30AM-12:30PM', '12:30PM-2PM', '2PM-3:30PM', '3:30PM-5PM', '7PM-8:30PM'],
-        friday: ['9:30AM-10:30AM', '10:30AM-11:30AM', '12:30PM-2PM', '2PM-3:30PM', '3:30PM-5PM', '5:30PM-7PM', '7PM-8:30PM'],
-        saturday: ['9:30AM-10:30AM', '10:30AM-11:30AM', '11:30AM-12:30PM', '12:30PM-2PM', '2PM-3:30PM', '3:30PM-5PM', '5:30PM-7PM', '7PM-8:30PM'],
-        sunday: ['9:30AM-10:30AM', '10:30AM-11:30AM', '11:30AM-12:30PM', '12:30PM-2PM', '2PM-3:30PM', '3:30PM-5PM', '5:30PM-7PM', '7PM-8:30PM'],
+        monday: ['9:30AM-10:30AM', '10:30AM-11:30AM', '11:30AM-12:30PM', '12:30PM-2PM', '2PM-3:30PM', '3:30PM-5PM', '7PM-8:30PM', '9:30PM-10:30PM', '10:30PM-11:30PM', '11:30PM-12:30AM'],
+        tuesday: ['9:30AM-10:30AM', '10:30AM-11:30AM', '11:30AM-12:30PM', '2PM-3:30PM', '3:30PM-5PM', '5:30PM-7PM', '7PM-8:30PM', '9:30PM-10:30PM', '10:30PM-11:30PM', '11:30PM-12:30AM'],
+        wednesday: ['9:30AM-10:30AM', '10:30AM-11:30AM', '11:30AM-12:30PM', '12:30PM-2PM', '2PM-3:30PM', '3:30PM-5PM', '5:30PM-7PM', '7PM-8:30PM', '9:30PM-10:30PM', '10:30PM-11:30PM', '11:30PM-12:30AM'],
+        thursday: ['9:30AM-10:30AM', '10:30AM-11:30AM', '11:30AM-12:30PM', '12:30PM-2PM', '2PM-3:30PM', '3:30PM-5PM', '7PM-8:30PM', '9:30PM-10:30PM', '10:30PM-11:30PM', '11:30PM-12:30AM'],
+        friday: ['9:30AM-10:30AM', '10:30AM-11:30AM', '12:30PM-2PM', '2PM-3:30PM', '3:30PM-5PM', '5:30PM-7PM', '7PM-8:30PM', '9:30PM-10:30PM', '10:30PM-11:30PM', '11:30PM-12:30AM'],
+        saturday: ['9:30AM-10:30AM', '10:30AM-11:30AM', '11:30AM-12:30PM', '12:30PM-2PM', '2PM-3:30PM', '3:30PM-5PM', '5:30PM-7PM', '7PM-8:30PM', '9:30PM-10:30PM', '10:30PM-11:30PM', '11:30PM-12:30AM'],
+        sunday: ['9:30AM-10:30AM', '10:30AM-11:30AM', '11:30AM-12:30PM', '12:30PM-2PM', '2PM-3:30PM', '3:30PM-5PM', '5:30PM-7PM', '7PM-8:30PM', '9:30PM-10:30PM', '10:30PM-11:30PM', '11:30PM-12:30AM'],
       },
     },
   ];
@@ -206,13 +216,13 @@ async function seedReviewers() {
       email: 'rohan.mehta@iitb.ac.in',
       department: 'Computer Science and Engineering',
       availability: {
-        monday: ['9:30AM-10:30AM', '11:30AM-12:30PM', '2PM-3:30PM', '5:30PM-7PM', '7PM-8:30PM'],
-        tuesday: ['10:30AM-11:30AM', '11:30AM-12:30PM', '12:30PM-2PM', '3:30PM-5PM', '7PM-8:30PM'],
-        wednesday: ['9:30AM-10:30AM', '12:30PM-2PM', '2PM-3:30PM', '5:30PM-7PM', '7PM-8:30PM'],
-        thursday: ['9:30AM-10:30AM', '10:30AM-11:30AM', '2PM-3:30PM', '3:30PM-5PM', '7PM-8:30PM'],
-        friday: ['11:30AM-12:30PM', '12:30PM-2PM', '3:30PM-5PM', '5:30PM-7PM', '7PM-8:30PM'],
-        saturday: ['9:30AM-10:30AM', '10:30AM-11:30AM', '11:30AM-12:30PM', '12:30PM-2PM', '2PM-3:30PM', '3:30PM-5PM', '5:30PM-7PM', '7PM-8:30PM'],
-        sunday: ['9:30AM-10:30AM', '10:30AM-11:30AM', '11:30AM-12:30PM', '12:30PM-2PM', '2PM-3:30PM', '3:30PM-5PM', '5:30PM-7PM', '7PM-8:30PM'],
+        monday: ['9:30AM-10:30AM', '11:30AM-12:30PM', '2PM-3:30PM', '5:30PM-7PM', '7PM-8:30PM', '9:30PM-10:30PM', '10:30PM-11:30PM', '11:30PM-12:30AM'],
+        tuesday: ['10:30AM-11:30AM', '11:30AM-12:30PM', '12:30PM-2PM', '3:30PM-5PM', '7PM-8:30PM', '9:30PM-10:30PM', '10:30PM-11:30PM', '11:30PM-12:30AM'],
+        wednesday: ['9:30AM-10:30AM', '12:30PM-2PM', '2PM-3:30PM', '5:30PM-7PM', '7PM-8:30PM', '9:30PM-10:30PM', '10:30PM-11:30PM', '11:30PM-12:30AM'],
+        thursday: ['9:30AM-10:30AM', '10:30AM-11:30AM', '2PM-3:30PM', '3:30PM-5PM', '7PM-8:30PM', '9:30PM-10:30PM', '10:30PM-11:30PM', '11:30PM-12:30AM'],
+        friday: ['11:30AM-12:30PM', '12:30PM-2PM', '3:30PM-5PM', '5:30PM-7PM', '7PM-8:30PM', '9:30PM-10:30PM', '10:30PM-11:30PM', '11:30PM-12:30AM'],
+        saturday: ['9:30AM-10:30AM', '10:30AM-11:30AM', '11:30AM-12:30PM', '12:30PM-2PM', '2PM-3:30PM', '3:30PM-5PM', '5:30PM-7PM', '7PM-8:30PM', '9:30PM-10:30PM', '10:30PM-11:30PM', '11:30PM-12:30AM'],
+        sunday: ['9:30AM-10:30AM', '10:30AM-11:30AM', '11:30AM-12:30PM', '12:30PM-2PM', '2PM-3:30PM', '3:30PM-5PM', '5:30PM-7PM', '7PM-8:30PM', '9:30PM-10:30PM', '10:30PM-11:30PM', '11:30PM-12:30AM'],
       },
     },
     {
@@ -220,13 +230,13 @@ async function seedReviewers() {
       email: 'priya.nair@iitb.ac.in',
       department: 'Electrical Engineering',
       availability: {
-        monday: ['10:30AM-11:30AM', '12:30PM-2PM', '3:30PM-5PM', '5:30PM-7PM'],
-        tuesday: ['9:30AM-10:30AM', '11:30AM-12:30PM', '2PM-3:30PM', '5:30PM-7PM', '7PM-8:30PM'],
-        wednesday: ['10:30AM-11:30AM', '11:30AM-12:30PM', '3:30PM-5PM', '5:30PM-7PM', '7PM-8:30PM'],
-        thursday: ['9:30AM-10:30AM', '12:30PM-2PM', '2PM-3:30PM', '5:30PM-7PM', '7PM-8:30PM'],
-        friday: ['9:30AM-10:30AM', '10:30AM-11:30AM', '2PM-3:30PM', '3:30PM-5PM', '7PM-8:30PM'],
-        saturday: ['9:30AM-10:30AM', '10:30AM-11:30AM', '11:30AM-12:30PM', '12:30PM-2PM', '2PM-3:30PM', '3:30PM-5PM', '5:30PM-7PM', '7PM-8:30PM'],
-        sunday: ['9:30AM-10:30AM', '10:30AM-11:30AM', '11:30AM-12:30PM', '12:30PM-2PM', '2PM-3:30PM', '3:30PM-5PM', '5:30PM-7PM', '7PM-8:30PM'],
+        monday: ['10:30AM-11:30AM', '12:30PM-2PM', '3:30PM-5PM', '5:30PM-7PM', '9:30PM-10:30PM', '10:30PM-11:30PM', '11:30PM-12:30AM'],
+        tuesday: ['9:30AM-10:30AM', '11:30AM-12:30PM', '2PM-3:30PM', '5:30PM-7PM', '7PM-8:30PM', '9:30PM-10:30PM', '10:30PM-11:30PM', '11:30PM-12:30AM'],
+        wednesday: ['10:30AM-11:30AM', '11:30AM-12:30PM', '3:30PM-5PM', '5:30PM-7PM', '7PM-8:30PM', '9:30PM-10:30PM', '10:30PM-11:30PM', '11:30PM-12:30AM'],
+        thursday: ['9:30AM-10:30AM', '12:30PM-2PM', '2PM-3:30PM', '5:30PM-7PM', '7PM-8:30PM', '9:30PM-10:30PM', '10:30PM-11:30PM', '11:30PM-12:30AM'],
+        friday: ['9:30AM-10:30AM', '10:30AM-11:30AM', '2PM-3:30PM', '3:30PM-5PM', '7PM-8:30PM', '9:30PM-10:30PM', '10:30PM-11:30PM', '11:30PM-12:30AM'],
+        saturday: ['9:30AM-10:30AM', '10:30AM-11:30AM', '11:30AM-12:30PM', '12:30PM-2PM', '2PM-3:30PM', '3:30PM-5PM', '5:30PM-7PM', '7PM-8:30PM', '9:30PM-10:30PM', '10:30PM-11:30PM', '11:30PM-12:30AM'],
+        sunday: ['9:30AM-10:30AM', '10:30AM-11:30AM', '11:30AM-12:30PM', '12:30PM-2PM', '2PM-3:30PM', '3:30PM-5PM', '5:30PM-7PM', '7PM-8:30PM', '9:30PM-10:30PM', '10:30PM-11:30PM', '11:30PM-12:30AM'],
       },
     },
   ];

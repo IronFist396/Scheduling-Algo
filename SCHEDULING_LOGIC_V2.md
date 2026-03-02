@@ -10,6 +10,7 @@ The scheduler assigns interview slots to candidates from the ISMP Mentors applic
 - Candidates can specify **specific calendar dates they are not available** (`blockedDates`), which are hard-excluded from scheduling
 - Availability scoring is now **calendar-aware** — it accounts for blocked dates when ranking candidates
 - Day-of-week is derived from the actual calendar date, not a hardcoded cyclic index
+- Three **night slots** added (`9:30PM-10:30PM`, `10:30PM-11:30PM`, `11:30PM-12:30AM`) — everyone assumed free for these on all 7 days (not present in CSV form, added manually)
 
 ---
 
@@ -237,6 +238,9 @@ All 7 days of the week are now valid scheduling days. OCs, Reviewers, and all ca
 | `3:30PM-5PM` | 15:30 – 17:00 |
 | `5:30PM-7PM` | 17:30 – 19:00 |
 | `7PM-8:30PM` | 19:00 – 20:30 |
+| `9:30PM-10:30PM` | 21:30 – 22:30 |
+| `10:30PM-11:30PM` | 22:30 – 23:30 |
+| `11:30PM-12:30AM` | 23:30 – 00:30 |
 
 ---
 

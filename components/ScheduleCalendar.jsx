@@ -13,6 +13,9 @@ const TIME_SLOTS = [
   '3:30 PM',
   '5:30 PM',
   '7:00 PM',
+  '9:30 PM',
+  '10:30 PM',
+  '11:30 PM',
 ];
 
 // Helper function to normalize time format for comparison
