@@ -15,30 +15,30 @@ export default function ScheduleControls({
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [selectedDate, setSelectedDate] = useState('');
   
-  const weekNumber = Math.ceil(currentDay / 5);
-  const weekStartDay = (weekNumber - 1) * 5 + 1;
-  const weekEndDay = weekNumber * 5;
+  const weekNumber = Math.ceil(currentDay / 7);
+  const weekStartDay = (weekNumber - 1) * 7 + 1;
+  const weekEndDay = weekNumber * 7;
 
   // Calculate current week based on real calendar date
   const currentWeek = scheduleStartDate ? calculateCurrentWeek(scheduleStartDate) : null;
   const isCurrentWeek = currentWeek && weekNumber === currentWeek;
 
   const goToPreviousWeek = () => {
-    const prevWeekStartDay = Math.max(1, weekStartDay - 5);
+    const prevWeekStartDay = Math.max(1, weekStartDay - 7);
     if (prevWeekStartDay !== currentDay) {
       setCurrentDay(prevWeekStartDay);
     }
   };
 
   const goToNextWeek = () => {
-    const nextWeekStartDay = weekStartDay + 5;
-    if (nextWeekStartDay <= maxWeek * 5 && nextWeekStartDay !== currentDay) {
+    const nextWeekStartDay = weekStartDay + 7;
+    if (nextWeekStartDay <= maxWeek * 7 && nextWeekStartDay !== currentDay) {
       setCurrentDay(nextWeekStartDay);
     }
   };
 
   const goToWeek = (week) => {
-    const newDay = (week - 1) * 5 + 1;
+    const newDay = (week - 1) * 7 + 1;
     setCurrentDay(newDay);
   };
 

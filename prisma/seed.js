@@ -19,20 +19,27 @@ const SLOT_MAPPING = {
 
 // Day mapping — CSV uses \r\n (Windows line endings) in headers
 const DAY_COLUMNS = {
-  monday: 'Monday\r\nMark the slots in which you DO NOT have academic commitments.',
-  tuesday: 'Tuesday\r\nMark the slots in which you DO NOT have academic commitments.',
-  wednesday: 'Wednesday\r\nMark the slots in which you DO NOT have academic commitments.',
-  thursday: 'Thursday\r\nMark the slots in which you DO NOT have academic commitments.',
-  friday: 'Friday\r\nMark the slots in which you DO NOT have academic commitments.',
+  monday: 'Monday',
+  tuesday: 'Tuesday',
+  wednesday: 'Wednesday',
+  thursday: 'Thursday',
+  friday: 'Friday',
 };
 
 function parseAvailability(row) {
+  const ALL_SLOTS = [
+    '9:30AM-10:30AM', '10:30AM-11:30AM', '11:30AM-12:30PM', '12:30PM-2PM',
+    '2PM-3:30PM', '3:30PM-5PM', '5:30PM-7PM', '7PM-8:30PM',
+  ];
+
   const availability = {
     monday: [],
     tuesday: [],
     wednesday: [],
     thursday: [],
     friday: [],
+    saturday: ALL_SLOTS,
+    sunday: ALL_SLOTS,
   };
 
   Object.entries(DAY_COLUMNS).forEach(([day, columnName]) => {
@@ -45,6 +52,22 @@ function parseAvailability(row) {
   });
 
   return availability;
+}
+
+/**
+ * Parse "dates not available" column (dd/MM/yyyy, comma-separated)
+ * Returns an array of ISO date strings: ["2026-03-09", "2026-03-10", ...]
+ */
+function parseBlockedDates(raw) {
+  if (!raw || raw.trim() === '' || raw.trim() === '-') return [];
+  return raw
+    .split(',')
+    .map(s => s.trim())
+    .filter(s => /\d{2}\/\d{2}\/\d{4}/.test(s))
+    .map(s => {
+      const [day, month, year] = s.split('/');
+      return `${year}-${month}-${day}`; // dd/MM/yyyy → YYYY-MM-DD
+    });
 }
 
 async function seedOCs() {
@@ -62,6 +85,8 @@ async function seedOCs() {
         wednesday: ['11:30AM-12:30PM', '12:30PM-2PM', '2PM-3:30PM', '3:30PM-5PM', '5:30PM-7PM', '7PM-8:30PM'],
         thursday: ['9:30AM-10:30AM', '10:30AM-11:30AM', '11:30AM-12:30PM', '12:30PM-2PM', '3:30PM-5PM', '5:30PM-7PM', '7PM-8:30PM'],
         friday: ['11:30AM-12:30PM', '12:30PM-2PM', '2PM-3:30PM', '3:30PM-5PM', '5:30PM-7PM', '7PM-8:30PM'],
+        saturday: ['9:30AM-10:30AM', '10:30AM-11:30AM', '11:30AM-12:30PM', '12:30PM-2PM', '2PM-3:30PM', '3:30PM-5PM', '5:30PM-7PM', '7PM-8:30PM'],
+        sunday: ['9:30AM-10:30AM', '10:30AM-11:30AM', '11:30AM-12:30PM', '12:30PM-2PM', '2PM-3:30PM', '3:30PM-5PM', '5:30PM-7PM', '7PM-8:30PM'],
       },
     },
     {
@@ -74,6 +99,8 @@ async function seedOCs() {
         wednesday: ['9:30AM-10:30AM', '10:30AM-11:30AM', '11:30AM-12:30PM', '12:30PM-2PM', '2PM-3:30PM', '3:30PM-5PM', '5:30PM-7PM', '7PM-8:30PM'],
         thursday: ['9:30AM-10:30AM', '10:30AM-11:30AM', '11:30AM-12:30PM', '12:30PM-2PM', '2PM-3:30PM', '3:30PM-5PM', '7PM-8:30PM'],
         friday: ['9:30AM-10:30AM', '10:30AM-11:30AM', '12:30PM-2PM', '2PM-3:30PM', '3:30PM-5PM', '5:30PM-7PM', '7PM-8:30PM'],
+        saturday: ['9:30AM-10:30AM', '10:30AM-11:30AM', '11:30AM-12:30PM', '12:30PM-2PM', '2PM-3:30PM', '3:30PM-5PM', '5:30PM-7PM', '7PM-8:30PM'],
+        sunday: ['9:30AM-10:30AM', '10:30AM-11:30AM', '11:30AM-12:30PM', '12:30PM-2PM', '2PM-3:30PM', '3:30PM-5PM', '5:30PM-7PM', '7PM-8:30PM'],
       },
     },
   ];
@@ -125,6 +152,7 @@ async function seedCandidates() {
       }
 
       const availability = parseAvailability(row);
+      const blockedDates = parseBlockedDates(row['dates not available']);
 
       await prisma.candidate.upsert({
         where: { rollNumber },
@@ -136,7 +164,8 @@ async function seedCandidates() {
           hostel: row['hostel'],
           contactNumber: row['contact number'],
           availability,
-          comments: row['Comments\nIf you are not available on any particular day during the month of March or April, please mention here with the specified format : date, reason. \nExample - April 12-15, travelling to home'],
+          blockedDates,
+          comments: row['Not available'],
         },
         create: {
           rollNumber,
@@ -147,7 +176,8 @@ async function seedCandidates() {
           hostel: row['hostel'],
           contactNumber: row['contact number'],
           availability,
-          comments: row['Comments\nIf you are not available on any particular day during the month of March or April, please mention here with the specified format : date, reason. \nExample - April 12-15, travelling to home'],
+          blockedDates,
+          comments: row['Not available'],
         },
       });
 
@@ -181,6 +211,8 @@ async function seedReviewers() {
         wednesday: ['9:30AM-10:30AM', '12:30PM-2PM', '2PM-3:30PM', '5:30PM-7PM', '7PM-8:30PM'],
         thursday: ['9:30AM-10:30AM', '10:30AM-11:30AM', '2PM-3:30PM', '3:30PM-5PM', '7PM-8:30PM'],
         friday: ['11:30AM-12:30PM', '12:30PM-2PM', '3:30PM-5PM', '5:30PM-7PM', '7PM-8:30PM'],
+        saturday: ['9:30AM-10:30AM', '10:30AM-11:30AM', '11:30AM-12:30PM', '12:30PM-2PM', '2PM-3:30PM', '3:30PM-5PM', '5:30PM-7PM', '7PM-8:30PM'],
+        sunday: ['9:30AM-10:30AM', '10:30AM-11:30AM', '11:30AM-12:30PM', '12:30PM-2PM', '2PM-3:30PM', '3:30PM-5PM', '5:30PM-7PM', '7PM-8:30PM'],
       },
     },
     {
@@ -193,6 +225,8 @@ async function seedReviewers() {
         wednesday: ['10:30AM-11:30AM', '11:30AM-12:30PM', '3:30PM-5PM', '5:30PM-7PM', '7PM-8:30PM'],
         thursday: ['9:30AM-10:30AM', '12:30PM-2PM', '2PM-3:30PM', '5:30PM-7PM', '7PM-8:30PM'],
         friday: ['9:30AM-10:30AM', '10:30AM-11:30AM', '2PM-3:30PM', '3:30PM-5PM', '7PM-8:30PM'],
+        saturday: ['9:30AM-10:30AM', '10:30AM-11:30AM', '11:30AM-12:30PM', '12:30PM-2PM', '2PM-3:30PM', '3:30PM-5PM', '5:30PM-7PM', '7PM-8:30PM'],
+        sunday: ['9:30AM-10:30AM', '10:30AM-11:30AM', '11:30AM-12:30PM', '12:30PM-2PM', '2PM-3:30PM', '3:30PM-5PM', '5:30PM-7PM', '7PM-8:30PM'],
       },
     },
   ];

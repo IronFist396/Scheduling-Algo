@@ -39,7 +39,9 @@ model Candidate {
   contactNumber String?
   // Store availability as JSON: {"monday": ["9:30AM-10:30AM", "10:30AM-11:30AM"], ...}
   availability Json
-  comments     String?         @db.Text
+  // Specific calendar dates the candidate is NOT available: ["2026-03-09", "2026-03-10", ...]
+  blockedDates Json      @default("[]")
+  comments     String?   @db.Text
   status       CandidateStatus @default(PENDING)
   createdAt    DateTime        @default(now())
   interviews   Interview[]

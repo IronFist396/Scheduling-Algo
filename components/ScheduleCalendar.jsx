@@ -3,7 +3,7 @@ import { format } from 'date-fns';
 import { getInterviewDate } from '../lib/dateUtils';
 import { exportScheduleToPDF } from '../lib/pdfExport';
 
-const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 const TIME_SLOTS = [
   '9:30 AM',
   '10:30 AM',
@@ -40,11 +40,11 @@ export default function ScheduleCalendar({ currentDay, selectedOC, scheduleStart
     setLoading(true);
     try {
       // Calculate the week number from current day
-      const weekNumber = Math.ceil(currentDay / 5);
-      const weekStartDay = (weekNumber - 1) * 5 + 1;
-      const weekEndDay = weekNumber * 5;
+      const weekNumber = Math.ceil(currentDay / 7);
+      const weekStartDay = (weekNumber - 1) * 7 + 1;
+      const weekEndDay = weekNumber * 7;
 
-      // Fetch all interviews for this week (5 days)
+      // Fetch all interviews for this week (7 days)
       const allInterviews = [];
       for (let day = weekStartDay; day <= weekEndDay; day++) {
         const params = new URLSearchParams();
@@ -191,16 +191,16 @@ export default function ScheduleCalendar({ currentDay, selectedOC, scheduleStart
   }
 
   function getInterviewsForDayAndTime(day, timeSlot) {
+    const JS_TO_DAY_NAME = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
     const filtered = interviews.filter((interview) => {
       if (!interview.startTime) return false;
       
       const interviewDate = new Date(interview.startTime);
       if (isNaN(interviewDate.getTime())) return false;
       
-      // Map dayNumber to day of week: Day 1=Monday, Day 2=Tuesday, etc.
-      // dayNumber cycles every 5 days (Monday-Friday)
-      const expectedDayOfWeek = ((interview.dayNumber - 1) % 5); // 0=Monday, 1=Tuesday, ..., 4=Friday
-      const expectedDayName = DAYS_OF_WEEK[expectedDayOfWeek];
+      // Derive the day name from the actual stored timestamp (local time)
+      const expectedDayName = JS_TO_DAY_NAME[interviewDate.getDay()];
       
       // Get the time
       const interviewTime = format(interviewDate, 'h:mm a');
@@ -231,9 +231,9 @@ export default function ScheduleCalendar({ currentDay, selectedOC, scheduleStart
     );
   }
 
-  const weekNumber = Math.ceil(currentDay / 5);
-  const weekStartDay = (weekNumber - 1) * 5 + 1;
-  const weekEndDay = weekNumber * 5;
+  const weekNumber = Math.ceil(currentDay / 7);
+  const weekStartDay = (weekNumber - 1) * 7 + 1;
+  const weekEndDay = weekNumber * 7;
 
   return (
     <div className="bg-white rounded-lg shadow-sm overflow-hidden">
@@ -306,18 +306,20 @@ export default function ScheduleCalendar({ currentDay, selectedOC, scheduleStart
               <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 w-32">
                 Time
               </th>
-              {DAYS_OF_WEEK.map((day, index) => {
-                // Calculate the actual date for this day
-                const weekNumber = Math.ceil(currentDay / 5);
-                const dayNumber = (weekNumber - 1) * 5 + index + 1;
+              {Array.from({ length: 7 }, (_, index) => {
+                // Build columns from actual calendar dates, not a fixed Mon-Sun array
+                const weekNumber = Math.ceil(currentDay / 7);
+                const dayNumber = (weekNumber - 1) * 7 + index + 1;
                 const actualDate = scheduleStartDate ? getInterviewDate(dayNumber, scheduleStartDate) : null;
-                
+                const JS_TO_DAY_NAME = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+                const dayName = actualDate ? JS_TO_DAY_NAME[actualDate.getDay()] : DAYS_OF_WEEK[index];
+
                 return (
                   <th
-                    key={day}
+                    key={dayNumber}
                     className="px-4 py-3 text-left text-sm font-medium text-gray-700"
                   >
-                    <div>{day}</div>
+                    <div>{dayName}</div>
                     {actualDate && (
                       <div className="text-xs font-normal text-gray-500 mt-1">
                         {format(actualDate, 'MMM d, yyyy')}
@@ -334,7 +336,12 @@ export default function ScheduleCalendar({ currentDay, selectedOC, scheduleStart
                 <td className="px-4 py-3 text-sm font-medium text-gray-600 whitespace-nowrap">
                   {timeSlot}
                 </td>
-                {DAYS_OF_WEEK.map((day) => {
+                {Array.from({ length: 7 }, (_, index) => {
+                  const weekNumber = Math.ceil(currentDay / 7);
+                  const dayNumber = (weekNumber - 1) * 7 + index + 1;
+                  const actualDate = scheduleStartDate ? getInterviewDate(dayNumber, scheduleStartDate) : null;
+                  const JS_TO_DAY_NAME = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+                  const day = actualDate ? JS_TO_DAY_NAME[actualDate.getDay()] : DAYS_OF_WEEK[index];
                   const dayInterviews = getInterviewsForDayAndTime(day, timeSlot);
                   
                   return (

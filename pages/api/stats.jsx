@@ -32,7 +32,7 @@ export default async function handler(req, res) {
     const [totalCandidates, totalInterviews, scheduled, completed, ocs, maxDayInterview] = stats;
     
     const daysUsed = maxDayInterview?.dayNumber || 0;
-    const weeksUsed = Math.ceil(daysUsed / 5);
+    const weeksUsed = Math.ceil(daysUsed / 7);
 
     return res.status(200).json({
       totalCandidates,

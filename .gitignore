@@ -13,6 +13,8 @@
 # testing
 /coverage
 *.csv
+*.xlsx
+
 # next.js
 /.next/
 /out/
