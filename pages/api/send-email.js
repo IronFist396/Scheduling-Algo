@@ -1,10 +1,8 @@
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../../lib/prisma';
 import nodemailer from 'nodemailer';
 
-const prisma = new PrismaClient();
-
 // Ensure these env vars are set in .env:
-// SMTP_HOST, SMTP_PORT, SMTP_SECURE, SMTP_USER, SMTP_PASS, FROM_EMAIL
+// SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, FROM_EMAIL
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
@@ -17,10 +15,23 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'Provide interviewId in body' });
     }
 
+    // Guard: fail fast with a clear message if SMTP is not configured
+    if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASS) {
+        return res.status(500).json({
+            error: 'SMTP not configured',
+            details: 'Set SMTP_HOST, SMTP_USER and SMTP_PASS in your .env file',
+        });
+    }
+
     try {
         const interview = await prisma.interview.findUnique({
             where: { id: interviewId },
-            include: { candidate: true },
+            include: {
+                candidate: true,
+                oc1: { select: { name: true } },
+                reviewer1: { select: { name: true } },
+                oc2: { select: { name: true } },
+            },
         });
 
         if (!interview) return res.status(404).json({ error: 'Interview not found' });
@@ -37,37 +48,33 @@ export default async function handler(req, res) {
         const start = startDate ? startDate.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) : 'TBD';
         const end = endDate ? endDate.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) : 'TBD';
 
-        const subject = `Interview Scheduled: ${start}`;
-        const text = `Hello ${candidate.name || ''},\n\nYour interview is scheduled from ${start} to ${end}.\n\nPlease be on time.\n\nBest regards.`;
-        const html = `<p>Hello ${candidate.name || ''},</p>
-      <p>Your interview is scheduled from <strong>${start}</strong> to <strong>${end}</strong>.</p>
-      <p>Please be on time.</p>
-      <p>Best regards.</p>`;
+        const panelPartner = interview.reviewer1?.name || interview.oc2?.name || '';
+        const panel = panelPartner ? `${interview.oc1.name} & ${panelPartner}` : interview.oc1.name;
 
-        // Configure SMTP transporter
-        const transportOptions = {
+        const subject = `ISMP Interview Confirmation`;
+        const text = `Hello ${candidate.name || ''},\n\nYour ISMP interview has been scheduled.\n\nDate & Time: ${start} – ${end}\nPanel: ${panel}\n\nPlease be on time.\n\nBest regards,\nISMP Team`;
+        const html = `<p>Hello ${candidate.name || ''},</p>
+      <p>Your ISMP interview has been scheduled.</p>
+      <ul>
+        <li><strong>From:</strong> ${start}</li>
+        <li><strong>To:</strong> ${end}</li>
+        <li><strong>Panel:</strong> ${panel}</li>
+      </ul>
+      <p>Please be on time.</p>
+      <p>Best regards,<br/>ISMP Team</p>`;
+
+        const transporter = nodemailer.createTransport({
             host: process.env.SMTP_HOST,
             port: process.env.SMTP_PORT ? parseInt(process.env.SMTP_PORT, 10) : 587,
-            secure: false, // IMPORTANT: false for STARTTLS
+            secure: process.env.SMTP_PORT === '465',
             auth: {
                 user: process.env.SMTP_USER,
                 pass: process.env.SMTP_PASS,
-            },                         
-        };
-
-        if (process.env.SMTP_USER && process.env.SMTP_PASS) {
-            transportOptions.auth = {
-                user: process.env.SMTP_USER,
-                pass: process.env.SMTP_PASS,
-            };
-        }
-
-        const transporter = nodemailer.createTransport(transportOptions);
-
-        await transporter.verify();
+            },
+        });
 
         const info = await transporter.sendMail({
-            from: process.env.FROM_EMAIL || process.env.SMTP_USER || 'no-reply@example.com',
+            from: process.env.FROM_EMAIL || process.env.SMTP_USER,
             to: candidate.email,
             subject,
             text,
@@ -78,7 +85,5 @@ export default async function handler(req, res) {
     } catch (err) {
         console.error('send-email error:', err);
         return res.status(500).json({ error: 'Failed to send email', details: err.message });
-    } finally {
-        await prisma.$disconnect();
     }
 }

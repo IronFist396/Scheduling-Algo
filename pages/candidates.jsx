@@ -213,9 +213,14 @@ export default function CandidatesPage() {
                         });
                       })()}
                     </div>
-                    {candidate.interviews[0].oc1 && candidate.interviews[0].oc2 && (
+                    {candidate.interviews[0].oc1 && (
                       <div className="text-xs text-gray-600 mt-1">
-                        Interviewers: {candidate.interviews[0].oc1.name} & {candidate.interviews[0].oc2.name}
+                        Panel: {candidate.interviews[0].oc1.name}
+                        {candidate.interviews[0].reviewer1
+                          ? ` & ${candidate.interviews[0].reviewer1.name}`
+                          : candidate.interviews[0].oc2
+                          ? ` & ${candidate.interviews[0].oc2.name}`
+                          : ''}
                       </div>
                     )}
                   </div>

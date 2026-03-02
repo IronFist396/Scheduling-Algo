@@ -131,7 +131,10 @@ export default function TodayInterviews({ onInterviewUpdate }) {
                             Roll: {interview.candidate.rollNumber}
                           </p>
                           <p className="text-xs text-gray-500">
-                            Interviewers: {interview.oc1.name} & {interview.oc2.name}
+                            Panel: {interview.oc1.name}
+                            {interview.reviewer1
+                              ? ` & ${interview.reviewer1.name}`
+                              : ` & ${interview.oc2.name}`}
                           </p>
                         </div>
                         {!isCompleted && (

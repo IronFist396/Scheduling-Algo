@@ -48,7 +48,12 @@ export default function Dashboard() {
     }
   };
 
-  const handleSendEmail = async (interviewId) => {
+  const handleSendEmail = async (interviewId, candidateName) => {
+    const confirmed = window.confirm(
+      `Send an email reminder to ${candidateName}?\n\nThis will notify them of their scheduled interview time and panel.`
+    );
+    if (!confirmed) return;
+
     setEmailLoading(interviewId);
     try {
       const res = await fetch('/api/send-email', {
@@ -180,33 +185,29 @@ export default function Dashboard() {
                   <p className="text-xs text-gray-500 mt-1">
                     Roll: {interview.candidate.rollNumber}
                   </p>
+                  <p className="text-xs text-gray-500 mt-1">{interview.candidate.email}</p>
                 </div>
 
                 {/* Interviewers */}
                 <div className="mb-4 pb-4 border-b border-gray-200">
-                  <p className="text-xs text-gray-500 mb-1">Interviewers:</p>
+                  <div className="flex items-center justify-between mb-1">
+                    <p className="text-xs text-gray-500">Panel:</p>
+                    <button
+                      onClick={() => handleSendEmail(interview.id, interview.candidate.name)}
+                      disabled={emailLoading === interview.id}
+                      className="text-xs text-indigo-600 hover:text-indigo-800 underline underline-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      {emailLoading === interview.id ? 'Sending...' : 'Send email reminder'}
+                    </button>
+                  </div>
                   <div className="flex gap-2">
                     <span className="px-2 py-1 bg-indigo-50 text-indigo-700 rounded text-xs">
                       {interview.oc1.name}
                     </span>
                     <span className="px-2 py-1 bg-indigo-50 text-indigo-700 rounded text-xs">
-                      {interview.oc2.name}
+                      {interview.reviewer1 ? interview.reviewer1.name : interview.oc2.name}
                     </span>
                   </div>
-                </div>
-
-                {/* Send Email Button */}
-                <div className="mb-3">
-                  <button
-                    onClick={() => handleSendEmail(interview.id)}
-                    disabled={emailLoading === interview.id}
-                    className="w-full bg-indigo-500 hover:bg-indigo-600 text-white font-medium py-2 px-4 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                    </svg>
-                    {emailLoading === interview.id ? 'Sending...' : 'Send Email'}
-                  </button>
                 </div>
 
                 {/* Action Buttons - Only show if SCHEDULED */}

@@ -163,8 +163,12 @@ export default function ScheduleCalendar({ currentDay, selectedOC, scheduleStart
     }
   }
 
-  async function handleSendEmail(interviewId) {
-    console.log("Send Email API Hit")
+  async function handleSendEmail(interviewId, candidateName) {
+    const confirmed = window.confirm(
+      `Send an email reminder to ${candidateName}?\n\nThis will notify them of their scheduled interview time and panel.`
+    );
+    if (!confirmed) return;
+
     setEmailLoading(true);
     try {
       const res = await fetch('/api/send-email', {
@@ -403,6 +407,7 @@ export default function ScheduleCalendar({ currentDay, selectedOC, scheduleStart
               </div>
 
               <div className="grid grid-cols-2 gap-4">
+                {/* Row 1 */}
                 <div>
                   <label className="text-sm font-medium text-gray-600">Department</label>
                   <p className="text-sm text-black">{selectedInterview.candidate.department}</p>
@@ -411,17 +416,29 @@ export default function ScheduleCalendar({ currentDay, selectedOC, scheduleStart
                   <label className="text-sm font-medium text-gray-600">Email</label>
                   <p className="text-sm text-black">{selectedInterview.candidate.email}</p>
                 </div>
-              </div>
 
-              <div>
-                <label className="text-sm font-medium text-gray-600">Panel</label>
-                <p className="text-sm text-black">
-                  {selectedInterview.oc1.name}
-                  {selectedInterview.reviewer1 ? ` + ${selectedInterview.reviewer1.name}` : ''}
-                </p>
-                <p className="text-xs text-gray-500 mt-1">
-                  Other SPMC: {selectedInterview.oc2.name}
-                </p>
+                {/* Row 2 */}
+                <div>
+                  <label className="text-sm font-medium text-gray-600">Panel</label>
+                  <p className="text-sm text-black">
+                    {selectedInterview.oc1.name}
+                    {selectedInterview.reviewer1 ? ` + ${selectedInterview.reviewer1.name}` : ''}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Other SPMC: {selectedInterview.oc2.name}
+                  </p>
+                </div>
+                <div>
+                  {/* Transparent label to perfectly align the button with the Panel text */}
+                  <label className="text-sm font-medium text-transparent block pointer-events-none select-none">Action</label>
+                  <button
+                    onClick={() => handleSendEmail(selectedInterview.id, selectedInterview.candidate.name)}
+                    disabled={emailLoading}
+                    className="text-sm text-indigo-600 hover:text-indigo-800 underline underline-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                  >
+                    {emailLoading ? 'Sending...' : 'Send email reminder'}
+                  </button>
+                </div>
               </div>
 
               <div>
@@ -463,20 +480,6 @@ export default function ScheduleCalendar({ currentDay, selectedOC, scheduleStart
                   <p className="text-sm">{selectedInterview.notes}</p>
                 </div>
               )}
-
-              {/* Send Email Button — always visible */}
-              <div className="mt-6">
-                <button
-                  onClick={() => handleSendEmail(selectedInterview.id)}
-                  disabled={emailLoading}
-                  className="w-full px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 flex items-center justify-center gap-2"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                  </svg>
-                  {emailLoading ? 'Sending...' : 'Send Email'}
-                </button>
-              </div>
 
               <div className="flex gap-3 mt-3">
                 {selectedInterview.status === 'SCHEDULED' && !selectedInterview.isCompleted && (

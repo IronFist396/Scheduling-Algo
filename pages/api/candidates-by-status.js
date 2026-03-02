@@ -34,6 +34,11 @@ export default async function handler(req, res) {
                   name: true,
                 },
               },
+              reviewer1: {
+                select: {
+                  name: true,
+                },
+              },
             },
             orderBy: {
               startTime: 'asc',
@@ -67,6 +72,11 @@ export default async function handler(req, res) {
                   name: true,
                 },
               },
+              reviewer1: {
+                select: {
+                  name: true,
+                },
+              },
             },
             orderBy: {
               startTime: 'asc',
@@ -96,6 +106,11 @@ export default async function handler(req, res) {
                 },
               },
               oc2: {
+                select: {
+                  name: true,
+                },
+              },
+              reviewer1: {
                 select: {
                   name: true,
                 },
