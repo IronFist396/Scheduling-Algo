@@ -4,6 +4,11 @@
 
 When a candidate cannot attend their scheduled slot, the system runs a **two-tier rescheduling strategy**. The guiding principle is minimal disruption — touch as few existing interviews as possible.
 
+**V2 changes to rescheduling:**
+- Week boundaries use 7-day weeks (`ceil(dayNumber / 7) * 7`) — no more 5-day weeks
+- Day-of-week is derived from the actual calendar date (`Date.getDay()` on `SCHEDULE_START_DATE + dayNumber - 1`), not a modulo index
+- **Blocked dates are enforced in all three reschedule paths** — a candidate can never land on a date in their `blockedDates` via any reschedule route
+
 ---
 
 ## Tier 1 — Same-Slot Swap (zero disruption)
@@ -19,18 +24,36 @@ Candidate availability is weekly and repeating. If candidate B is scheduled on "
 ### Algorithm
 
 ```
-1. Find future interviews where:
+1. currentWeekEnd = ceil(dayNumber / 7) * 7
+
+2. Compute targetDayOfWeek = Date.getDay() on (SCHEDULE_START_DATE + dayNumber - 1)
+   — this is the real JS weekday (0=Sun … 6=Sat), NOT (dayNumber-1) % 7
+
+3. Find future interviews where:
    - dayNumber > currentWeekEnd
-   - (dayNumber - 1) % 5 == (displaced.dayNumber - 1) % 5   (same weekday)
-   - startTime UTC hours + minutes match                      (same time slot)
+   - Date.getDay() on (SCHEDULE_START_DATE + future.dayNumber - 1) == targetDayOfWeek
+   - startTime UTC hours + minutes match (same time slot)
+   - displaced candidate does NOT have the swap target's calendar date in blockedDates
+   - swap target candidate does NOT have the displaced candidate's calendar date in blockedDates
    - loop guard: same candidate was not moved here < 24h ago
 
-2. Pick the earliest future week match (minimises schedule extension).
+4. Pick the earliest future week match (minimises schedule extension).
 
-3. Swap candidateId on the two interview records.
+5. Swap candidateId on the two interview records.
    Panel composition (SMPC + reviewer) stays on each slot unchanged.
    Both candidates remain SCHEDULED.
 ```
+
+### Blocked Dates in Tier 1
+
+Both sides of the swap are checked symmetrically before accepting any match:
+
+```
+isCandidateBlocked(displaced, future.dayNumber)   → skip if true (A can't go to that date)
+isCandidateBlocked(swapTarget, original.dayNumber) → skip if true (B can't go to that date)
+```
+
+If all future same-slot candidates are blocked or loop-guarded, Tier 1 fails and Tier 2 runs.
 
 ### Result
 
@@ -50,15 +73,21 @@ Used when Tier 1 finds no match — e.g. the displaced candidate is in the last 
 
 ### Step A — Backfill the vacated slot
 
-The displaced candidate's slot (e.g. Week N, Monday 9:30AM) is now empty. Before touching future weeks, attempt to fill it from the **rebuild pool** (displaced candidate + all currently PENDING candidates).
+The displaced candidate's slot (e.g. Week N, Sunday 9:30AM) is now empty. Before touching future weeks, attempt to fill it from the **rebuild pool** (displaced candidate + all currently PENDING candidates).
 
 ```
+Derive the real weekday from the calendar date (not % 7):
+  vacatedDate = SCHEDULE_START_DATE + (vacatedDayNumber - 1) days
+  dayOfWeek   = JS_TO_DAY_NAME[vacatedDate.getDay()]   // e.g. 'sunday'
+
 Reconstruct the slot's time string from its stored UTC startTime:
   IST hours = UTC hours + 5  (borrow if minutes overflow)
   IST mins  = UTC mins  + 30
   Format as e.g. "9:30AM"
 
 For each candidate in the pool:
+  isoDate = SCHEDULE_START_DATE + (vacatedDayNumber - 1) days  → "YYYY-MM-DD"
+  If isoDate is in candidate.blockedDates → skip (candidate unavailable that date)
   Does candidate.availability[dayOfWeek] contain a slot starting at that time?
   If yes:
     Assign them to the vacated slot
@@ -77,6 +106,8 @@ No panel re-composition is needed because the slot already has a booked SMPC + r
 ### Step B — Partial rebuild from Week N+1 only
 
 ```
+currentWeekEnd = ceil(displaced.dayNumber / 7) * 7
+
 Pool = displaced candidate
      + all PENDING candidates
      + candidates whose future interviews (dayNumber > currentWeekEnd) are about to be deleted
@@ -93,6 +124,12 @@ Any candidate the scheduler could not place stays PENDING
 
 The scheduler's **"hardest first, earliest day"** ordering naturally fills Week N+1 before extending to Week N+2 and beyond — so the schedule stays as compact as possible.
 
+**Blocked dates in Step B:** `scheduleInterviews` enforces `blockedDates` in two places internally:
+- `calculateAvailabilityScore` — skips blocked calendar days when scoring, so heavily-blocked candidates are still scheduled first
+- `findPanelForCandidateOnDay` — returns `null` immediately if the day's calendar date is in the candidate's `blockedDates`
+
+No extra handling is needed in the rebuild path — the core scheduler already guarantees correctness.
+
 ---
 
 ## Full Flow Diagram
@@ -101,17 +138,24 @@ The scheduler's **"hardest first, earliest day"** ordering naturally fills Week 
 reschedule(interviewId)
         |
         v
-  [Tier 1] Find future interview with same weekday + time
+  [Tier 1] currentWeekEnd = ceil(dayNumber / 7) * 7
+           targetWeekday  = Date.getDay(SCHEDULE_START_DATE + dayNumber - 1)
+           Find future interview with same calendar weekday + same UTC time
         |
-   Found? --YES--> Swap candidates on the two records
+   Found? --YES--> Both blocked-date checks pass?  --NO--> skip, try next
+        |                    |
+        |                   YES
+        |                    v
+        |          Swap candidates on the two records
         |                    --> return SWAP result
         NO
         |
         v
-  Build pool: displaced + PENDING + future-week candidates
+  Build pool: displaced + PENDING + future-week candidates (with blockedDates fetched)
         |
         v
   [Step A] Scan pool for someone who fits the vacated slot
+           (weekday from calendar date; skip if candidate's blockedDates contains vacated date)
         |
    Found? --YES--> Assign them to vacated slot (reuse panel)
         |          Remove from pool
@@ -120,7 +164,8 @@ reschedule(interviewId)
         |
         v
   [Step B] Delete future interviews (Week N+1+)
-           Rebuild with remaining pool
+           Rebuild with remaining pool via scheduleInterviews()
+           (blockedDates enforced automatically inside the scheduler)
            --> return REBUILD result
 ```
 
@@ -137,6 +182,11 @@ reschedule(interviewId)
 | Pool includes deleted future-week candidates | Their interviews are being removed anyway — better to re-optimise than leave gaps |
 | Displaced candidate gets PENDING if unschedulable | Honest state, visible in the dashboard for manual intervention |
 | Loop guard (24h window) | Prevents A → B → A ping-pong swaps within the same day |
+| Week boundary uses `ceil(dayNumber / 7) * 7` | 7-day weeks (Sat + Sun included) — old code used `/ 5` which skipped weekends |
+| Day-of-week derived from `Date.getDay()` on real calendar date | Correct for any start day; `(dayNumber-1) % 7` would be wrong if `SCHEDULE_START_DATE` is not a Monday |
+| Blocked dates checked symmetrically in Tier 1 swap | Both the displaced candidate and the swap target must be free on their new dates |
+| Blocked dates checked in Tier 2 backfill before availability | Avoids placing a candidate on a date they've hard-blocked even if their weekly availability says they're free |
+| Blocked dates in Tier 2 rebuild delegated to the core scheduler | `scheduleInterviews` already enforces `blockedDates` in scoring and panel-finding — no duplication needed |
 
 ---
 
@@ -149,3 +199,7 @@ reschedule(interviewId)
 | Loop detected on all Tier 1 candidates | All swap matches skipped. Falls through to Tier 2 |
 | Completed interview reschedule attempted | Rejected immediately — completed interviews are immutable |
 | Scheduler cannot place displaced candidate in rebuild | Candidate remains PENDING — no forced slot created |
+| Every future same-slot candidate has the original date blocked | All Tier 1 candidates rejected. Falls through to Tier 2 |
+| Displaced candidate has the vacated date blocked | Backfill skips them. They go into the rebuild pool and are placed on a non-blocked day |
+| All pool candidates have the vacated date blocked | Vacated slot deleted (no backfill). Rebuild proceeds normally — no one is forced onto a blocked date |
+| Start date is a Saturday or Sunday | Day-of-week derivation uses `Date.getDay()` on the real date — swap matching and backfill are always correct regardless of start weekday |
