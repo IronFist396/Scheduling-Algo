@@ -21,6 +21,7 @@ export default async function handler(req, res) {
         name: true,
         rollNumber: true,
         availability: true,
+        blockedDates: true,
       },
     });
 
@@ -52,6 +53,33 @@ export default async function handler(req, res) {
       startDate ? new Date(startDate) : new Date(process.env.SCHEDULE_START_DATE),
       maxDays || 999 // Unlimited by default
     );
+
+    // Constraint violation check — verify no scheduled interview falls on a blocked date
+    const scheduleStart = startDate ? new Date(startDate) : new Date(process.env.SCHEDULE_START_DATE);
+    const constraintViolations = stats.scheduledInterviews
+      .filter(interview => {
+        const candidate = candidates.find(c => c.id === interview.candidateId);
+        if (!candidate?.blockedDates?.length) return false;
+        const d = new Date(scheduleStart);
+        d.setUTCDate(d.getUTCDate() + (interview.dayNumber - 1));
+        return candidate.blockedDates.includes(d.toISOString().slice(0, 10));
+      })
+      .map(interview => {
+        const candidate = candidates.find(c => c.id === interview.candidateId);
+        const d = new Date(scheduleStart);
+        d.setUTCDate(d.getUTCDate() + (interview.dayNumber - 1));
+        return {
+          candidateName: candidate.name,
+          rollNumber: candidate.rollNumber,
+          scheduledDate: d.toISOString().slice(0, 10),
+          slot: interview.slot,
+          blockedDates: candidate.blockedDates,
+        };
+      });
+
+    if (constraintViolations.length > 0) {
+      console.error(`[Schedule] CONSTRAINT VIOLATIONS: ${constraintViolations.length} interview(s) placed on blocked dates!`, constraintViolations);
+    }
 
     // Delete existing interviews and reset all candidate statuses
     await prisma.$transaction([
@@ -87,11 +115,13 @@ export default async function handler(req, res) {
         daysUsed: stats.daysUsed,
         weeksUsed: stats.weeksUsed,
       },
+      constraintViolations,
       unscheduledCandidates: stats.unscheduledCandidates.map(item => ({
         name: item.candidate.name,
         rollNumber: item.candidate.rollNumber,
         reason: item.reason,
         availabilityScore: item.availabilityScore,
+        blockedDates: item.candidate.blockedDates || [],
       })),
     });
   } catch (error) {

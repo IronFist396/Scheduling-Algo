@@ -67,19 +67,20 @@ export default function Home() {
       const data = await res.json();
       
       if (data.success) {
+        const violationNote = data.constraintViolations?.length > 0
+          ? `\n\n⚠ ${data.constraintViolations.length} constraint violation(s) detected — check "See Constraints".`
+          : '';
         const unscheduledNote = data.stats.unscheduled > 0
-          ? `\n\n${data.stats.unscheduled} candidate(s) could not be scheduled (no common slots with OCs)`
-          : `\n\nAll candidates successfully scheduled.`;
-
-        const msg =
+          ? `\n${data.stats.unscheduled} candidate(s) could not be scheduled.`
+          : `\nAll candidates successfully scheduled.`;
+        alert(
           `Scheduling complete.\n\n` +
           `Scheduled: ${data.stats.scheduled} / ${data.stats.totalCandidates}\n` +
-          `Working days: ${data.stats.daysUsed} (${data.stats.weeksUsed} week${data.stats.weeksUsed !== 1 ? 's' : ''})` +
-          unscheduledNote;
-
-        alert(msg);
+          `Days used: ${data.stats.daysUsed} (${data.stats.weeksUsed} week${data.stats.weeksUsed !== 1 ? 's' : ''})` +
+          unscheduledNote + violationNote
+        );
         fetchStats();
-        window.location.reload();
+        setRefreshKey(prev => prev + 1);
       } else {
         alert(`Error: ${data.error}`);
       }
@@ -120,10 +121,10 @@ export default function Home() {
                 Action History
               </Link>
               <Link
-                href="/compare"
+                href="/constraints"
                 className="px-4 py-2 bg-[#1e3a6e] text-white rounded-lg hover:bg-[#162d55] transition-colors"
               >
-                Compare Algorithms
+                View Constraints
               </Link>
               <button
                 onClick={runScheduler}
