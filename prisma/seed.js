@@ -67,9 +67,12 @@ function parseAvailability(row) {
 /**
  * Parse "dates not available" column (dd/MM/yyyy, comma-separated)
  * Returns an array of ISO date strings: ["2026-03-09", "2026-03-10", ...]
+ * Dates before SCHEDULE_START_DATE are silently dropped — the scheduler
+ * never assigns anyone to a day before the start, so they are meaningless.
  */
 function parseBlockedDates(raw) {
   if (!raw || raw.trim() === '' || raw.trim() === '-') return [];
+  const scheduleStart = process.env.SCHEDULE_START_DATE || '1970-01-01';
   return raw
     .split(',')
     .map(s => s.trim())
@@ -77,7 +80,8 @@ function parseBlockedDates(raw) {
     .map(s => {
       const [day, month, year] = s.split('/');
       return `${year}-${month}-${day}`; // dd/MM/yyyy → YYYY-MM-DD
-    });
+    })
+    .filter(iso => iso >= scheduleStart); // drop anything before schedule start
 }
 
 async function seedOCs() {

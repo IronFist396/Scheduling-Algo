@@ -34,8 +34,15 @@ export default async function handler(req, res) {
 
     // Compute the ISO scheduled date for each candidate (if scheduled)
     const result = candidates
-      .filter(c => Array.isArray(c.blockedDates) && c.blockedDates.length > 0)
       .map(c => {
+        // Only keep blocked dates on or after the schedule start — earlier dates
+        // are irrelevant because the scheduler never places anyone before startDate.
+        const relevantBlockedDates = Array.isArray(c.blockedDates)
+          ? c.blockedDates.filter(d => !scheduleStart || d >= scheduleStart)
+          : [];
+
+        if (relevantBlockedDates.length === 0) return null; // exclude if no relevant constraints
+
         const interview = c.interviews[0] ?? null;
         let scheduledDate = null;
         let isViolation = false;
@@ -44,7 +51,7 @@ export default async function handler(req, res) {
           const d = new Date(scheduleStart);
           d.setUTCDate(d.getUTCDate() + (interview.dayNumber - 1));
           scheduledDate = d.toISOString().slice(0, 10);
-          isViolation = c.blockedDates.includes(scheduledDate);
+          isViolation = relevantBlockedDates.includes(scheduledDate);
         }
 
         return {
@@ -54,7 +61,7 @@ export default async function handler(req, res) {
           department: c.department,
           year: c.year,
           status: c.status,
-          blockedDates: c.blockedDates,
+          blockedDates: relevantBlockedDates,
           scheduledDate,
           startTime: interview?.startTime
             ? new Date(interview.startTime).toLocaleTimeString('en-US', {
@@ -66,7 +73,8 @@ export default async function handler(req, res) {
             : null,
           isViolation,
         };
-      });
+      })
+      .filter(Boolean); // remove candidates with no relevant constraints
 
     return res.status(200).json({ candidates: result });
   } catch (error) {
