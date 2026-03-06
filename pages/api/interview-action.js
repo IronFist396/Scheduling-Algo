@@ -42,6 +42,7 @@ export default async function handler(req, res) {
               interviewId: interviewId,
               candidateName: interview.candidate.name,
               details: `Interview marked as completed`,
+              performedBy: session.user.name || session.user.email,
             },
           });
         }
@@ -66,6 +67,7 @@ export default async function handler(req, res) {
               interviewId: interviewId,
               candidateName: interview.candidate.name,
               details: `Reason: ${reason || 'Candidate unavailable'}. Method: ${result.method || 'Unknown'}`,
+              performedBy: session.user.name || session.user.email,
             },
           });
         }
