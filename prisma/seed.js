@@ -36,14 +36,21 @@ function parseAvailability(row) {
     '9:30PM-10:30PM', '10:30PM-11:30PM', '11:30PM-12:30AM',
   ];
 
+  // Default weekend window: 11:30AM → 12:30AM (last slot)
+  // Admins can override specific weekend dates via the Weekend Overrides UI
+  const DEFAULT_WEEKEND_SLOTS = [
+    '11:30AM-12:30PM', '12:30PM-2PM', '2PM-3:30PM', '3:30PM-5PM',
+    '5:30PM-7PM', '7PM-8:30PM', '9:30PM-10:30PM', '10:30PM-11:30PM', '11:30PM-12:30AM',
+  ];
+
   const availability = {
     monday: [],
     tuesday: [],
     wednesday: [],
     thursday: [],
     friday: [],
-    saturday: ALL_SLOTS,
-    sunday: ALL_SLOTS,
+    saturday: DEFAULT_WEEKEND_SLOTS,
+    sunday: DEFAULT_WEEKEND_SLOTS,
   };
 
   // Night slots not present in the CSV form — assumed free for everyone every day

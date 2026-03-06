@@ -45,13 +45,20 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'At least 2 OCs are required' });
     }
 
+    // Fetch weekend overrides and build a lookup map { "YYYY-MM-DD": { startSlot, endSlot } }
+    const overrideRows = await prisma.weekendOverride.findMany();
+    const weekendOverrides = Object.fromEntries(
+      overrideRows.map(r => [r.date, { startSlot: r.startSlot, endSlot: r.endSlot }])
+    );
+
     // Run scheduling algorithm
     const stats = scheduleInterviews(
       candidates,
       ocs,
       reviewers,
       startDate ? new Date(startDate) : new Date(process.env.SCHEDULE_START_DATE),
-      maxDays || 999 // Unlimited by default
+      maxDays || 999,
+      weekendOverrides
     );
 
     // Constraint violation check — verify no scheduled interview falls on a blocked date

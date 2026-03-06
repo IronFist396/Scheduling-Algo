@@ -270,3 +270,129 @@ All 7 days of the week are now valid scheduling days. OCs, Reviewers, and all ca
 | `Day 1 = SCHEDULE_START_DATE` exactly | No Monday-snapping — the schedule starts on whatever day the admin sets, making `SCHEDULE_START_DATE` a true anchor |
 | `getDayName` uses `Date.getDay()` | Deriving weekday from a real calendar date is correct regardless of start day; a cyclic `% 7` index would be wrong if the start date is not a Monday |
 | Blocked dates checked in both scoring and panel-finding | Scoring ensures heavily-blocked candidates are scheduled first (hardest-first); panel-finding ensures they are never placed on a blocked date |
+| Default weekend window restricts slots | Avoids early-morning slots on weekends without editing any individual availability row |
+
+---
+
+## Weekend Time Overrides
+
+### Problem
+
+OCs and reviewers are free all day on weekends by default (all 11 slots). In practice there may be days where the weekend session needs to start later or end earlier — exam season, public holidays, etc. Rather than editing every availability row in the DB, the system supports a **per-date window override** that trims which slots the scheduler may use on that specific date.
+
+### Data Model
+
+```prisma
+model WeekendOverride {
+  id        String   @id @default(cuid())
+  date      String   @unique   // ISO "YYYY-MM-DD", must be Saturday or Sunday
+  startSlot String             // e.g. "11:30AM-12:30PM"
+  endSlot   String             // e.g. "7PM-8:30PM"
+  note      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([date])
+  @@map("weekend_overrides")
+}
+```
+
+Each row represents one weekend day. Upsert semantics — saving the same date again replaces the previous record.
+
+### Default Window
+
+When no override exists for a weekend date the scheduler uses:
+
+```
+DEFAULT_WEEKEND_START = '11:30AM-12:30PM'
+DEFAULT_WEEKEND_END   = '11:30PM-12:30AM'
+```
+
+9 of the 11 slots are available by default (`9:30AM-10:30AM` and `10:30AM-11:30AM` excluded). The seed script seeds OC/reviewer weekend availability with these same 9 slots.
+
+### How `scheduler.js` Applies the Window
+
+`getAllowedSlots(date, weekendOverrides)` is called for every calendar day during scheduling:
+
+```javascript
+function getAllowedSlots(date, weekendOverrides) {
+  const dow = new Date(date).getUTCDay(); // 0=Sun, 6=Sat
+  if (dow !== 0 && dow !== 6) return null; // weekday — no restriction
+
+  const ov = weekendOverrides[date] || {
+    startSlot: DEFAULT_WEEKEND_START,
+    endSlot:   DEFAULT_WEEKEND_END,
+  };
+  const startIdx = ALL_SLOTS_ORDERED.indexOf(ov.startSlot);
+  const endIdx   = ALL_SLOTS_ORDERED.indexOf(ov.endSlot);
+  return new Set(ALL_SLOTS_ORDERED.slice(startIdx, endIdx + 1));
+}
+```
+
+Returns `null` (no restriction) for weekdays, or a `Set<string>` of allowed slot labels for a weekend date. Inside `scheduleInterviews()` every slot candidate is filtered through this set:
+
+```javascript
+const allowedSlots = getAllowedSlots(dateStr, weekendOverrides);
+const candidateSlots = rawSlots.filter(s => !allowedSlots || allowedSlots.has(s));
+```
+
+The same filter applies to SMPC and reviewer slot lists — so a slot outside the window is **globally unreachable** on that day regardless of individual availability. `weekendOverrides` is fetched from the DB in `pages/api/schedule.jsx` and passed into `scheduleInterviews()` on every fresh run.
+
+### Applying an Override to an Existing Schedule
+
+Saving an override only affects future scheduling runs. To retroactively move already-scheduled interviews that fall outside the new window, the admin clicks **Apply**. This calls `applyWeekendOverride(date, startSlot, endSlot)` in `lib/rescheduleLogic.js`.
+
+#### Steps
+
+1. **Find trimmed interviews** — fetch all non-completed interviews on that `dayNumber` whose stored UTC `startTime` maps to a slot outside the new window.
+2. **Find append point** — `appendFromDay = max(dayNumber across all scheduled interviews) + 1`.
+3. **Re-place each trimmed interview** — iterate days from `appendFromDay` upward, checking candidate `blockedDates`, panel-member availability, and `personBookings` (same logic as the main scheduler). Compute new UTC `startTime` via `parseSlotTime` + `calculateScheduledTime`.
+4. **Commit atomically** — Prisma transaction: `deleteMany` trimmed + `createMany` re-placed. Interviews that could not be placed are reported but the rest are still committed.
+
+#### What it does NOT touch
+
+- Interviews already inside the new window — completely undisturbed.
+- The rest of the schedule — displaced interviews go *after* the last scheduled day, nothing else shifts.
+- Previously applied moves — removing an override record does not move interviews back.
+
+#### Return value
+
+```javascript
+{
+  success: true,
+  moved: 3,
+  couldNotPlace: 0,
+  message: "Moved 3 interview(s). 0 could not be placed.",
+  details: [
+    { candidateName: "Alice", from: "Day 7 / 9:30AM-10:30AM", to: "Day 15 / 11:30AM-12:30PM" },
+    { candidateName: "Bob",   from: "Day 7 / 10:30AM-11:30AM", error: "No free slot found" },
+  ]
+}
+```
+
+### API (`/api/weekend-overrides`)
+
+| Method | Body | Action |
+|--------|------|--------|
+| `GET` | — | All override records ordered by date |
+| `POST` | `{ date, startSlot, endSlot, note? }` | Upsert override (validates Sat/Sun, slot order) |
+| `PUT` | `{ date }` | Apply override — calls `applyWeekendOverride`, returns move details |
+| `DELETE` | `{ date }` | Remove override record (does not undo applied moves) |
+
+### UI (`/weekend-overrides`)
+
+Linked from the home screen. Three sections:
+
+- **Info banner** — explains the default window and the Save → Apply two-step workflow.
+- **Add / Update form** — date picker (Sat/Sun only), start/end slot selects (end choices constrained to ≥ start), optional note.
+- **Saved overrides list** — cards colour-coded purple (Saturday) / orange (Sunday), each with an **Apply** button (moves trimmed interviews, shows per-candidate result) and a **Remove** button.
+
+### Design Decisions
+
+| Choice | Reason |
+|--------|--------|
+| `startSlot`/`endSlot` strings, not a bitmask | Consistent with slot representation everywhere else; human-readable in the DB |
+| Default window applied when no row exists | Constraint is on by default — no need to pre-populate future weekends |
+| Displaced interviews go after the last scheduled day | Existing schedule is completely undisturbed; only the out-of-window interviews move |
+| Atomic transaction (delete + create) | Prevents partial state if writes fail mid-way |
+| Save and Apply are separate actions | Admin can review or adjust the window before committing the move; applying is intentionally irreversible |
+| `couldNotPlace` reported but not rolled back | Moving 8 of 10 is better than leaving all 10 in a violated window |

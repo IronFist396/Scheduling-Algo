@@ -126,6 +126,12 @@ export default function Home() {
               >
                 View Constraints
               </Link>
+              <Link
+                href="/weekend-overrides"
+                className="px-4 py-2 bg-[#1e3a6e] text-white rounded-lg hover:bg-[#162d55] transition-colors"
+              >
+                🗓️ Weekend Hours
+              </Link>
               <button
                 onClick={runScheduler}
                 disabled={scheduling}

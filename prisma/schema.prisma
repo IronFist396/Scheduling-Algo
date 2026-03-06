@@ -154,3 +154,20 @@ model User {
   @@index([email])
   @@map("users")
 }
+
+// Per-date weekend time window overrides.
+// When a Saturday/Sunday date has an entry here, the scheduler uses only slots
+// within [startSlot, endSlot] for that date instead of the global default window.
+// Existing interviews are NEVER touched — overrides only apply to future scheduling runs.
+model WeekendOverride {
+  id        String   @id @default(cuid())
+  date      String   @unique // ISO date "YYYY-MM-DD", must be a Saturday or Sunday
+  startSlot String   // e.g. "9:30AM-10:30AM"
+  endSlot   String   // e.g. "5:30PM-7PM"
+  note      String?  // Optional reason / label
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([date])
+  @@map("weekend_overrides")
+}
