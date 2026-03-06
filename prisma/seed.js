@@ -230,7 +230,7 @@ async function seedReviewers() {
       },
     },
     {
-      name: 'Aaagam Jain',
+      name: 'Aagam Jain',
       email: 'aagam@iitb.ac.in',
       department: 'Mechanical Engineering',
       availability: {
