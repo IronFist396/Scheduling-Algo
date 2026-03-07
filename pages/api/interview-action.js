@@ -1,6 +1,7 @@
 import {
   markInterviewComplete,
   rescheduleInterview,
+  applyInterviewerUnavailability,
 } from '../../lib/interviewActions';
 import { prisma } from '../../lib/prisma';
 import { requireAuth } from '../../lib/auth';
@@ -106,6 +107,61 @@ export default async function handler(req, res) {
         }
         break;
         
+      case 'candidate_unavailable':
+        if (!interviewId) {
+          return res.status(400).json({ error: 'Missing interviewId' });
+        }
+        result = await rescheduleInterview(interviewId, reason || 'Candidate unavailable');
+
+        if (result.success) {
+          const interview = await prisma.interview.findFirst({
+            where: {
+              OR: [
+                { id: interviewId },
+                { lastRescheduledFrom: interviewId },
+              ],
+            },
+            include: { candidate: true },
+          });
+
+          await prisma.actionHistory.create({
+            data: {
+              actionType:    'RESCHEDULE',
+              interviewId:   interviewId,
+              candidateName: interview?.candidate?.name || 'Unknown',
+              details:       `Reason: ${reason || 'Candidate unavailable'}. Method: ${result.method || 'Unknown'}`,
+              performedBy:   session.user.name || session.user.email,
+            },
+          });
+        }
+        break;
+
+      case 'interviewer_unavailable':
+        if (!interviewId) {
+          return res.status(400).json({ error: 'Missing interviewId' });
+        }
+
+        // Fetch candidate name before deleting the interview
+        const ivForHistory = await prisma.interview.findUnique({
+          where: { id: interviewId },
+          include: { candidate: { select: { name: true } } },
+        });
+
+        result = await applyInterviewerUnavailability(interviewId, reason || 'Interviewer unavailable');
+
+        if (result.success) {
+          await prisma.actionHistory.create({
+            data: {
+              actionType:    'RESCHEDULE',
+              interviewId:   interviewId,
+              candidateName: ivForHistory?.candidate?.name || 'Unknown',
+              details:       `Interviewer unavailable. ${result.message}`,
+              performedBy:   session.user.name || session.user.email,
+            },
+          });
+        }
+        break;
+
       default:
         return res.status(400).json({ error: 'Invalid action' });
     }

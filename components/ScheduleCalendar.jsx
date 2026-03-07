@@ -166,6 +166,36 @@ export default function ScheduleCalendar({ currentDay, selectedOC, scheduleStart
     }
   }
 
+  async function handlePostpone(interviewId) {
+    const confirmed = window.confirm(
+      'Postpone this interview to the end of the schedule?\n\nThe current slot will be cleared and the interview will be rebooked at the first available slot after the last scheduled day.'
+    );
+    if (!confirmed) return;
+
+    setActionLoading(true);
+    try {
+      const res = await fetch('/api/interview-action', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'interviewer_unavailable', interviewId }),
+      });
+      const result = await res.json();
+      if (result.success) {
+        alert(result.message);
+        fetchInterviews();
+        setSelectedInterview(null);
+        if (onInterviewUpdate) onInterviewUpdate();
+      } else {
+        alert('Error: ' + result.message);
+      }
+    } catch (error) {
+      console.error('Error postponing interview:', error);
+      alert('Failed to postpone interview');
+    } finally {
+      setActionLoading(false);
+    }
+  }
+
   async function handleSendEmail(interviewId, candidateName) {
     const confirmed = window.confirm(
       `Send an email reminder to ${candidateName}?\n\nThis will notify them of their scheduled interview time and panel.`
@@ -432,10 +462,9 @@ export default function ScheduleCalendar({ currentDay, selectedOC, scheduleStart
                   <label className="text-sm font-medium text-gray-600">Panel</label>
                   <p className="text-sm text-black">
                     {selectedInterview.oc1.name}
-                    {selectedInterview.reviewer1 ? ` + ${selectedInterview.reviewer1.name}` : ''}
-                  </p>
-                  <p className="text-xs text-gray-500 mt-1">
-                    Other SPMC: {selectedInterview.oc2.name}
+                    {selectedInterview.reviewer1
+                      ? ` + ${selectedInterview.reviewer1.name}`
+                      : ` + ${selectedInterview.oc2.name}`}
                   </p>
                 </div>
                 <div>
@@ -507,6 +536,13 @@ export default function ScheduleCalendar({ currentDay, selectedOC, scheduleStart
                       className="flex-1 px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 disabled:opacity-50"
                     >
                       Reschedule
+                    </button>
+                    <button
+                      onClick={() => handlePostpone(selectedInterview.id)}
+                      disabled={actionLoading}
+                      className="flex-1 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50"
+                    >
+                      Postpone
                     </button>
                     <button
                       onClick={() => updateInterviewStatus(selectedInterview.id, 'CANCELLED')}

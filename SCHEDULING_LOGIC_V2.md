@@ -457,3 +457,118 @@ Linked from the home screen. Three sections:
 | Atomic transaction (delete + create) | Prevents partial state if writes fail mid-way |
 | Save and Apply are separate actions | Admin can review or adjust the window before committing the move; applying is intentionally irreversible |
 | `couldNotPlace` reported but not rolled back | Moving 8 of 10 is better than leaving all 10 in a violated window |
+
+---
+
+## Interviewer Unavailability (`applyInterviewerUnavailability`)
+
+### Purpose
+
+Handles the case where **one or both interviewers** on a scheduled interview are unavailable on the assigned day/slot (illness, sudden commitment, etc.) and the interview must be moved. This is distinct from `smartReschedule` which handles *candidate* unavailability.
+
+### Trigger
+
+Admin clicks "Interviewer Unavailable" on an interview card in the dashboard. This calls `POST /api/interview-action` with `action: "interviewer_unavailable"`.
+
+### Algorithm — Step by Step
+
+#### Step 1: Load the Interview
+Fetch the target interview including the candidate's `availability` and `blockedDates`. Guard against:
+- Interview not found → return error
+- Interview already completed → return error
+
+#### Step 2: Find the Search Start Day
+Find the **highest `dayNumber`** across all *other* scheduled interviews. The search for a new slot starts from that day itself (not `lastDay + 1`), so any free slots on the last day are used before the schedule is extended.
+
+```
+appendFromDay = max(lastScheduled.dayNumber, interview.dayNumber)
+```
+
+Taking `max` with `interview.dayNumber` handles the edge case where the interview being moved **is itself the last one** — in that case `lastScheduled` (which excludes the current interview) would return an earlier day, and without the `max` the search could incorrectly place the interview back in the middle of the schedule.
+
+#### Step 3: Build the Bookings Map
+Fetch all existing interviews from `appendFromDay` onwards and populate two structures:
+- `personBookings` — set of `"<personId>-day<N>-<slot>"` strings; prevents double-booking any individual panel member.
+- `slotOccupancy` — map of `"day<N>-<slot>" → count`; tracks how many interviews are already running in each slot, used to prefer concurrent packing over opening new slots.
+
+#### Step 4: Build Panel Combinations
+Constructs all valid panel pairings in priority order:
+1. **OC + Reviewer** pairs (all combinations) — preferred, allows concurrent panels
+2. **OC + OC** pairs — last resort
+
+#### Step 5: Find the First Free Slot
+Walks forward day-by-day from `appendFromDay`, for each day:
+- Skip if the candidate has that calendar date in `blockedDates`
+- Skip if the candidate has no availability that day (after applying the weekend window)
+- Enforce weekend slot window — on Saturdays/Sundays, slots are filtered to the allowed range (`11:30AM` start by default, or per-date override from the `WeekendOverride` table)
+- For each panel combination, compute `commonSlots` (candidate ∩ spmc ∩ partner, all filtered through weekend window)
+- Sort `commonSlots` by **occupancy descending first, then earliest time** — slots that already have a concurrent interview running are tried before empty slots, maximising panel concurrency and minimising total days used
+- First panel+slot where neither panel member is in `personBookings` wins (`break outer`)
+
+#### Step 6: Commit (Atomic Transaction)
+```
+DELETE interview (old slot is vacated — no backfill, no one moves in)
+CREATE interview at the new day/slot with the new panel
+UPDATE candidate status → SCHEDULED
+```
+
+The `oc2Id` field (required non-nullable in schema) is always populated:
+- For OC+OC panels: `oc2Id = partner.id`
+- For OC+Reviewer panels: `oc2Id = any other OC` (schema compatibility — same pattern as `scheduler.js`)
+
+`rescheduleCount` is incremented. `rescheduleReason` is stored on the new record.
+
+### Key Behavioural Properties
+
+| Property | Behaviour |
+|---|---|
+| **Rest of schedule** | Completely undisturbed — no swaps, no partial rebuild |
+| **Vacated slot** | Left empty — no backfill attempt |
+| **New position** | Last scheduled day or later — free slots on the last day are tried first; schedule only extends if that day is fully packed |
+| **Panel assignment** | Freshest available pair; may differ from original panel |
+| **Candidate** | Same candidate, moved to a later slot |
+| **`rescheduleCount`** | Incremented on the new interview record |
+| **OC+OC fallback** | Used if no OC+Reviewer combination is free in any forward day |
+
+### Difference from `smartReschedule`
+
+| | `smartReschedule` (candidate unavailable) | `applyInterviewerUnavailability` |
+|---|---|---|
+| **Trigger** | Candidate cannot attend | Interviewer(s) cannot attend |
+| **Tier 1** | Same-slot swap with a future-week candidate | N/A — always appends |
+| **Tier 2** | Backfill vacated slot + partial rebuild of future weeks | N/A |
+| **Other candidates affected?** | Possibly (swap partner moves to original slot) | Never |
+| **Schedule extension** | Only if swap and rebuild both fail to fill everyone | Only if last day has no free common slot |
+
+### Known Limitations / Bugs
+
+> **Bug 1 — `personBookings` is scoped to `appendFromDay` only**
+> The bookings map only loads interviews from `appendFromDay` onwards. If two `applyInterviewerUnavailability` calls run close together and both resolve to the same append day, the second call's `personBookings` will not include the first call's newly-written interview unless it was already committed before the second DB read. Concurrent admin actions could therefore double-book a panel member. Low risk in practice (admin UI is single-user), but worth noting.
+
+> **Bug 2 — `otherOC` fallback can equal `spmc` when only 1 OC exists**
+> ```javascript
+> const otherOC = isOCOC
+>   ? newSlot.partner
+>   : allOCs.find(o => o.id !== newSlot.spmc.id) || newSlot.spmc; // fallback is spmc itself
+> ```
+> The guard `allOCs.length < 2` earlier catches this before the search runs, so in normal operation this path is unreachable. But if it were hit, `oc1Id === oc2Id` — semantically wrong. The guard is sufficient; however, the fallback should ideally `throw` instead of silently self-assigning.
+
+> **Bug 3 — `panelId` string does not match `oc2Id` for OC+Reviewer panels**
+> `panelId` is set to `"${spmc.name}+${partner.name}"` (e.g. `"Ojas+Diya"`), correctly naming the active panel. However `oc2Id` is silently set to the *other OC* (e.g. Dev) for schema compatibility. Any UI code that reads `oc2.name` to display the panel will show the wrong person for OC+Reviewer interviews. This is a pre-existing design compromise inherited from `scheduler.js` and documented in the Design Decisions table above.
+>
+> ✅ **Fixed** — `ScheduleCalendar.jsx` interview detail popup now uses `reviewer1 ? reviewer1.name : oc2.name` consistently, matching all other display components.
+
+> ~~**Bug 4 — `appendFromDay` always skipped to `lastDay + 1`, wasting free slots on the last day**~~
+> The original code set `appendFromDay = lastDay + 1`, meaning any still-free slots on the last currently-scheduled day were never considered for the moved interview.
+>
+> ✅ **Fixed** — `appendFromDay` is now `Math.max(lastScheduled?.dayNumber ?? interview.dayNumber, interview.dayNumber)`. The search starts from the last scheduled day itself; the day loop advances naturally only when that day is fully booked. The `Math.max` guard prevents searching *before* the moved interview's own day in the edge case where it was itself the last scheduled interview.
+
+> ~~**Bug 5 — Weekend slot window not enforced in postpone logic**~~
+> `applyInterviewerUnavailability` never called `getAllowedSlots()`, so on Saturdays and Sundays it could select slots like `9:30AM-10:30AM` that fall outside the allowed 11:30 AM start window.
+>
+> ✅ **Fixed** — The function now fetches `WeekendOverride` rows in parallel with OCs/Reviewers, builds `getAllowedSlotsLocal(calDate)` (an inline mirror of `scheduler.js`'s `getAllowedSlots()`), and filters `candidateSlots`, `spmcSlots`, and `partnerSlots` through it before computing intersections.
+
+> ~~**Bug 6 — Postponed interview not packed concurrently; earliest-slot sort opened new time bands unnecessarily**~~
+> `commonSlots` was sorted by earliest time only. If day N already had an interview at `2:30PM-3:30PM`, a postponed interview that could also fit `2:30PM-3:30PM` would instead be placed at `9:30AM-10:30AM`, creating a new occupied time band rather than running concurrently.
+>
+> ✅ **Fixed** — After building `personBookings`, the function now also builds a `slotOccupancy` map (`"day<N>-<slot>" → count`) from `existingFuture`. `commonSlots.sort()` uses occupancy descending as the primary key and earliest-time as the tiebreaker, so concurrent slots are always tried before empty ones.
