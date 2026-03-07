@@ -271,6 +271,67 @@ All 7 days of the week are now valid scheduling days. OCs, Reviewers, and all ca
 | `getDayName` uses `Date.getDay()` | Deriving weekday from a real calendar date is correct regardless of start day; a cyclic `% 7` index would be wrong if the start date is not a Monday |
 | Blocked dates checked in both scoring and panel-finding | Scoring ensures heavily-blocked candidates are scheduled first (hardest-first); panel-finding ensures they are never placed on a blocked date |
 | Default weekend window restricts slots | Avoids early-morning slots on weekends without editing any individual availability row |
+| Tier 1 tiebreaker = least-loaded panel | Prevents one (SPMC, reviewer) pair from dominating the schedule — all 4 combinations (Ojas+Diya, Ojas+Aagam, Dev+Diya, Dev+Aagam) get roughly equal share |
+
+---
+
+## Panel Load Balancing
+
+### Problem
+
+All 4 valid Tier 1 panel combinations are logically equivalent in terms of constraints:
+
+| SPMC | Reviewer |
+|------|----------|
+| Ojas | Diya |
+| Ojas | Aagam |
+| Dev  | Diya |
+| Dev  | Aagam |
+
+Without deliberate balancing, the Tier 1 sort (earliest slot first) is a stable sort over the iteration order of the `spmcs × reviewers` nested loop. Whichever combination appears first in that loop wins every tie — in practice this meant **Dev+Aagam appeared on nearly every interview** while Dev+Diya and Ojas+anything were rarely used.
+
+### Fix — `assignmentCount` Tiebreaker
+
+A per-person assignment counter is maintained alongside `personBookings`:
+
+```javascript
+const assignmentCount = {};
+[...spmcs, ...reviewers].forEach(p => { assignmentCount[p.id] = 0; });
+```
+
+After every booking, both panel members are incremented:
+
+```javascript
+bookPerson(spmc.id, day, slot);
+bookPerson(partner.id, day, slot);
+assignmentCount[spmc.id]++;
+assignmentCount[partner.id]++;
+```
+
+The Tier 1 sort uses this as a **secondary key** (primary is still earliest slot):
+
+```javascript
+tier1.sort((a, b) => {
+  // Primary: earliest slot
+  const slotDiff = (parseSlotTime(a.slot).minutes + ...) - (...);
+  if (slotDiff !== 0) return slotDiff;
+  // Tiebreaker: least-loaded panel
+  const loadA = assignmentCount[a.spmc.id] + assignmentCount[a.partner.id];
+  const loadB = assignmentCount[b.spmc.id] + assignmentCount[b.partner.id];
+  return loadA - loadB;
+});
+```
+
+This means:
+- If two combinations offer the same earliest slot, the one whose members have done fewer interviews so far is picked.
+- Over hundreds of candidates, this distributes interviews roughly evenly across all 4 panel pairings.
+- The primary scheduling goal (earliest slot = fewest total days used) is completely unchanged.
+
+### What this does NOT change
+
+- The slot a candidate is assigned to is still the earliest possible — load balancing only breaks ties at the same slot.
+- The total number of scheduled candidates is unchanged.
+- Tier 2 (both-SPMC) panels are unaffected — there is only one possible combination there.
 
 ---
 
